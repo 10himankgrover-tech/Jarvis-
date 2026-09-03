@@ -8,8 +8,8 @@
   <style>
     :root {
       /* Dark Theme */
-      --bg-gradient: radial-gradient(circle at 50% 20%, #1a0b36 0%, #080c14 100%);
-      --card-bg: rgba(20, 20, 35, 0.65);
+      --bg-gradient: radial-gradient(circle at 50% 20%, #100626 0%, #04060a 100%);
+      --card-bg: rgba(18, 18, 30, 0.7);
       --card-border: rgba(0, 212, 255, 0.3);
       --text-main: #e0f7fa;
       --text-sub: #00d4ff;
@@ -17,7 +17,7 @@
       --msg-user-border: rgba(0, 212, 255, 0.5);
       --msg-bot-bg: rgba(255, 255, 255, 0.08);
       --msg-bot-border: rgba(255, 255, 255, 0.15);
-      --input-bg: rgba(0, 0, 0, 0.4);
+      --input-bg: rgba(0, 0, 0, 0.5);
       --accent-glow: 0 0 25px rgba(0, 212, 255, 0.6);
       --btn-bg: linear-gradient(135deg, #00d4ff, #7000ff);
       --btn-text: #ffffff;
@@ -26,15 +26,15 @@
     [data-theme="light"] {
       /* Light Theme */
       --bg-gradient: radial-gradient(circle at 50% 20%, #e0c3fc 0%, #8ec5fc 100%);
-      --card-bg: rgba(255, 255, 255, 0.75);
-      --card-border: rgba(255, 255, 255, 0.9);
+      --card-bg: rgba(255, 255, 255, 0.8);
+      --card-border: rgba(255, 255, 255, 0.95);
       --text-main: #1e1e2f;
       --text-sub: #4a00e0;
       --msg-user-bg: linear-gradient(135deg, #8e2de2, #4a00e0);
       --msg-user-border: rgba(142, 45, 226, 0.3);
-      --msg-bot-bg: rgba(255, 255, 255, 0.85);
-      --msg-bot-border: rgba(255, 255, 255, 0.9);
-      --input-bg: rgba(255, 255, 255, 0.85);
+      --msg-bot-bg: rgba(255, 255, 255, 0.9);
+      --msg-bot-border: rgba(255, 255, 255, 0.95);
+      --input-bg: rgba(255, 255, 255, 0.9);
       --accent-glow: 0 0 20px rgba(142, 45, 226, 0.4);
       --btn-bg: linear-gradient(135deg, #8e2de2, #4a00e0);
       --btn-text: #ffffff;
@@ -59,28 +59,51 @@
       position: relative;
     }
 
-    /* Ambient Floating Background Particle */
-    .floating-jarvis-bg {
+    /* Ambient Floating JARVIS Arc Background Elements */
+    .bg-jarvis-orb-1 {
       position: absolute;
-      width: 320px;
-      height: 320px;
+      width: 400px;
+      height: 400px;
       border-radius: 50%;
-      border: 2px dashed var(--text-sub);
-      opacity: 0.15;
+      border: 3px dashed var(--text-sub);
+      opacity: 0.18;
       pointer-events: none;
       z-index: 0;
-      animation: floatLoop 18s ease-in-out infinite alternate, spinSlow 30s linear infinite;
+      animation: floatOrbit1 22s ease-in-out infinite alternate, spinCW 35s linear infinite;
     }
 
-    @keyframes floatLoop {
-      0% { transform: translate(-30vw, -20vh) scale(0.9); }
-      50% { transform: translate(25vw, 15vh) scale(1.2); }
-      100% { transform: translate(-10vw, 25vh) scale(0.8); }
+    .bg-jarvis-orb-2 {
+      position: absolute;
+      width: 250px;
+      height: 250px;
+      border-radius: 50%;
+      border: 2px dotted rgba(112, 0, 255, 0.6);
+      opacity: 0.22;
+      pointer-events: none;
+      z-index: 0;
+      animation: floatOrbit2 16s ease-in-out infinite alternate, spinCCW 25s linear infinite;
     }
 
-    @keyframes spinSlow {
+    @keyframes floatOrbit1 {
+      0% { transform: translate(-35vw, -25vh) scale(0.9); }
+      50% { transform: translate(30vw, 20vh) scale(1.15); }
+      100% { transform: translate(-15vw, 30vh) scale(0.85); }
+    }
+
+    @keyframes floatOrbit2 {
+      0% { transform: translate(30vw, -30vh) scale(1.1); }
+      50% { transform: translate(-25vw, -10vh) scale(0.8); }
+      100% { transform: translate(20vw, 35vh) scale(1.2); }
+    }
+
+    @keyframes spinCW {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+
+    @keyframes spinCCW {
+      0% { transform: rotate(360deg); }
+      100% { transform: rotate(0deg); }
     }
 
     /* Layout Setup */
@@ -100,7 +123,7 @@
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--card-border);
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
       border-radius: 24px;
     }
 
@@ -121,6 +144,19 @@
       color: var(--text-sub);
     }
 
+    .new-chat-btn {
+      width: 100%;
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      border: none;
+      padding: 10px;
+      border-radius: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 12px;
+      box-shadow: var(--accent-glow);
+    }
+
     .history-list {
       flex: 1;
       overflow-y: auto;
@@ -130,7 +166,7 @@
     }
 
     .history-item {
-      padding: 10px;
+      padding: 10px 12px;
       background: rgba(255, 255, 255, 0.05);
       border-radius: 10px;
       font-size: 0.85rem;
@@ -141,9 +177,9 @@
       border: 1px solid transparent;
     }
 
-    .history-item:hover {
+    .history-item:hover, .history-item.active {
       border-color: var(--card-border);
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.15);
     }
 
     /* Main Chat Section */
@@ -152,6 +188,7 @@
       display: flex;
       flex-direction: column;
       padding: 20px;
+      min-width: 0; /* Prevents layout clipping */
     }
 
     /* Header & Controls */
@@ -161,6 +198,7 @@
       justify-content: space-between;
       padding-bottom: 15px;
       border-bottom: 1px solid var(--card-border);
+      flex-shrink: 0;
     }
 
     .header-left {
@@ -219,15 +257,16 @@
 
     .mobile-history-btn { display: none; }
 
-    /* Chat Display */
+    /* Smooth Scrolling Chat Box */
     .chat-box {
       flex: 1;
-      overflow-y: auto;
+      overflow-y: scroll;
+      scroll-behavior: smooth;
       margin: 15px 0;
       display: flex;
       flex-direction: column;
       gap: 12px;
-      padding-right: 5px;
+      padding-right: 8px;
     }
 
     .message {
@@ -236,11 +275,12 @@
       max-width: 85%;
       font-size: 0.95rem;
       line-height: 1.5;
-      animation: slideIn 0.3s ease-out;
+      word-wrap: break-word;
+      animation: slideIn 0.25s ease-out;
     }
 
     @keyframes slideIn {
-      from { opacity: 0; transform: translateY(10px); }
+      from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
@@ -264,6 +304,7 @@
     .input-container {
       display: flex;
       gap: 10px;
+      flex-shrink: 0;
     }
 
     input[type="text"] {
@@ -287,7 +328,7 @@
       box-shadow: var(--accent-glow);
     }
 
-    /* Mobile Responsive Logic */
+    /* Mobile Responsiveness */
     @media (max-width: 768px) {
       .app-layout { flex-direction: column; }
       .mobile-history-btn { display: block; }
@@ -310,19 +351,18 @@
 </head>
 <body>
 
-  <!-- Floating Background Particle -->
-  <div class="floating-jarvis-bg"></div>
+  <!-- Floating Ambient JARVIS Background Orbs -->
+  <div class="bg-jarvis-orb-1"></div>
+  <div class="bg-jarvis-orb-2"></div>
 
   <div class="app-layout">
     <!-- History Sidebar -->
     <div class="glass-card history-panel" id="historyPanel">
       <div class="history-header">
-        <span>Search History</span>
-        <div>
-          <button class="clear-btn" onclick="clearHistory()">Clear</button>
-          <button class="clear-btn mobile-history-btn" onclick="toggleMobileHistory()" style="display:inline-block;">Close</button>
-        </div>
+        <span>Chat Sessions</span>
+        <button class="clear-btn" onclick="clearAllSessions()">Clear All</button>
       </div>
+      <button class="new-chat-btn" onclick="startNewChat()">+ New Chat</button>
       <div class="history-list" id="historyList"></div>
     </div>
 
@@ -339,14 +379,12 @@
           </div>
         </div>
         <div class="controls">
-          <button class="mobile-history-btn" onclick="toggleMobileHistory()">📜 History</button>
+          <button class="mobile-history-btn" onclick="toggleMobileHistory()">📜 Chats</button>
           <button class="theme-btn" onclick="toggleTheme()" id="themeToggleBtn">☀️ Light</button>
         </div>
       </div>
 
-      <div class="chat-box" id="chatBox">
-        <div class="message bot-msg">Greetings! I am JARVIS. How may I assist your studies today?</div>
-      </div>
+      <div class="chat-box" id="chatBox"></div>
 
       <div class="input-container">
         <input type="text" id="userInput" placeholder="Ask any question..." onkeydown="if(event.key==='Enter') sendQuery()">
@@ -356,19 +394,24 @@
   </div>
 
   <script>
+    let currentSessionId = null;
+
     window.onload = function() {
-      renderHistory();
+      let sessions = getSessions();
+      if (sessions.length === 0) {
+        startNewChat();
+      } else {
+        loadSession(sessions[0].id);
+      }
     };
 
     function toggleMobileHistory() {
-      const panel = document.getElementById('historyPanel');
-      panel.classList.toggle('active');
+      document.getElementById('historyPanel').classList.toggle('active');
     }
 
     function toggleTheme() {
       const body = document.body;
       const themeBtn = document.getElementById('themeToggleBtn');
-      
       if (body.getAttribute('data-theme') === 'light') {
         body.removeAttribute('data-theme');
         themeBtn.textContent = '☀️ Light';
@@ -378,12 +421,53 @@
       }
     }
 
+    /* Session Management (Gemini-style Chat Threads) */
+    function getSessions() {
+      return JSON.parse(localStorage.getItem('jarvis_sessions') || '[]');
+    }
+
+    function saveSessions(sessions) {
+      localStorage.setItem('jarvis_sessions', JSON.stringify(sessions));
+      renderHistoryList();
+    }
+
+    function startNewChat() {
+      currentSessionId = 'session_' + Date.now();
+      let sessions = getSessions();
+      sessions.unshift({
+        id: currentSessionId,
+        title: 'New Conversation',
+        messages: [{ sender: 'bot', text: 'Greetings! I am JARVIS. How may I assist your studies today?' }]
+      });
+      saveSessions(sessions);
+      loadSession(currentSessionId);
+      if (window.innerWidth <= 768) {
+        document.getElementById('historyPanel').classList.remove('active');
+      }
+    }
+
+    function loadSession(id) {
+      currentSessionId = id;
+      let sessions = getSessions();
+      let session = sessions.find(s => s.id === id);
+      const chatBox = document.getElementById('chatBox');
+      chatBox.innerHTML = '';
+
+      if (session) {
+        session.messages.forEach(msg => {
+          appendMessageUI(msg.text, msg.sender === 'user' ? 'user-msg' : 'bot-msg');
+        });
+      }
+      renderHistoryList();
+    }
+
     async function sendQuery() {
       const inputField = document.getElementById('userInput');
       const text = inputField.value.trim();
       if (!text) return;
 
-      appendMessage(text, 'user-msg');
+      appendMessageUI(text, 'user-msg');
+      saveMessageToSession(text, 'user');
       inputField.value = '';
 
       try {
@@ -396,22 +480,63 @@
         const data = await response.json();
         const reply = data.reply || "Systems standard response.";
         
-        appendMessage(reply, 'bot-msg');
+        appendMessageUI(reply, 'bot-msg');
+        saveMessageToSession(reply, 'bot');
         speak(reply);
-        saveHistory(text, reply);
 
       } catch (err) {
-        appendMessage("Central command connection failed.", 'bot-msg');
+        appendMessageUI("Central command connection failed.", 'bot-msg');
       }
     }
 
-    function appendMessage(text, className) {
+    function appendMessageUI(text, className) {
       const chatBox = document.getElementById('chatBox');
       const msgDiv = document.createElement('div');
       msgDiv.className = `message ${className}`;
       msgDiv.textContent = text;
       chatBox.appendChild(msgDiv);
-      chatBox.scrollTop = chatBox.scrollHeight;
+
+      // Smooth, non-blocking auto-scroll to bottom
+      requestAnimationFrame(() => {
+        chatBox.scrollTop = chatBox.scrollHeight;
+      });
+    }
+
+    function saveMessageToSession(text, sender) {
+      let sessions = getSessions();
+      let session = sessions.find(s => s.id === currentSessionId);
+      if (session) {
+        // Set title from the first user question
+        if (session.title === 'New Conversation' && sender === 'user') {
+          session.title = text.length > 28 ? text.substring(0, 28) + '...' : text;
+        }
+        session.messages.push({ sender, text });
+        saveSessions(sessions);
+      }
+    }
+
+    function renderHistoryList() {
+      const historyList = document.getElementById('historyList');
+      let sessions = getSessions();
+      historyList.innerHTML = '';
+
+      sessions.forEach(s => {
+        const div = document.createElement('div');
+        div.className = `history-item ${s.id === currentSessionId ? 'active' : ''}`;
+        div.textContent = s.title;
+        div.onclick = () => {
+          loadSession(s.id);
+          if (window.innerWidth <= 768) {
+            document.getElementById('historyPanel').classList.remove('active');
+          }
+        };
+        historyList.appendChild(div);
+      });
+    }
+
+    function clearAllSessions() {
+      localStorage.removeItem('jarvis_sessions');
+      startNewChat();
     }
 
     function speak(text) {
@@ -427,37 +552,6 @@
       utterance.rate = 0.95;
 
       window.speechSynthesis.speak(utterance);
-    }
-
-    function saveHistory(prompt, response) {
-      let history = JSON.parse(localStorage.getItem('jarvis_student_history') || '[]');
-      history.unshift({ prompt, response, timestamp: new Date().toLocaleTimeString() });
-      localStorage.setItem('jarvis_student_history', JSON.stringify(history));
-      renderHistory();
-    }
-
-    function renderHistory() {
-      const historyList = document.getElementById('historyList');
-      let history = JSON.parse(localStorage.getItem('jarvis_student_history') || '[]');
-      historyList.innerHTML = '';
-
-      history.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'history-item';
-        div.textContent = item.prompt;
-        div.title = item.prompt;
-        div.onclick = () => {
-          appendMessage(item.prompt, 'user-msg');
-          appendMessage(item.response, 'bot-msg');
-          document.getElementById('historyPanel').classList.remove('active');
-        };
-        historyList.appendChild(div);
-      });
-    }
-
-    function clearHistory() {
-      localStorage.removeItem('jarvis_student_history');
-      renderHistory();
     }
   </script>
 </body>
