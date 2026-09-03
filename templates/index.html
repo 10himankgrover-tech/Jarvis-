@@ -53,7 +53,7 @@
       color: var(--text-main);
     }
 
-    /* Infinite Animated Background Orbs */
+    /* Floating Animated Circles */
     .overlay-container {
       position: fixed;
       inset: 0;
@@ -64,38 +64,40 @@
 
     .fg-jarvis-orb-1 {
       position: absolute;
-      width: 320px;
-      height: 320px;
-      top: 5%;
-      left: 5%;
+      width: 300px;
+      height: 300px;
+      top: 10%;
+      left: 10%;
       border-radius: 50%;
       border: 2px dashed var(--text-sub);
-      opacity: 0.3;
-      animation: infiniteOrbit1 22s ease-in-out infinite alternate;
+      opacity: 0.25;
+      animation: floatLoop1 20s linear infinite;
     }
 
     .fg-jarvis-orb-2 {
       position: absolute;
-      width: 220px;
-      height: 220px;
-      bottom: 10%;
-      right: 5%;
+      width: 200px;
+      height: 200px;
+      bottom: 15%;
+      right: 10%;
       border-radius: 50%;
       border: 2px dotted rgba(112, 0, 255, 0.7);
-      opacity: 0.35;
-      animation: infiniteOrbit2 18s ease-in-out infinite alternate;
+      opacity: 0.3;
+      animation: floatLoop2 16s linear infinite;
     }
 
-    @keyframes infiniteOrbit1 {
+    @keyframes floatLoop1 {
       0% { transform: translate(0, 0) rotate(0deg); }
-      50% { transform: translate(40vw, 30vh) rotate(180deg); }
-      100% { transform: translate(10vw, 60vh) rotate(360deg); }
+      33% { transform: translate(30vw, 20vh) rotate(120deg); }
+      66% { transform: translate(-10vw, 40vh) rotate(240deg); }
+      100% { transform: translate(0, 0) rotate(360deg); }
     }
 
-    @keyframes infiniteOrbit2 {
+    @keyframes floatLoop2 {
       0% { transform: translate(0, 0) rotate(360deg); }
-      50% { transform: translate(-35vw, -25vh) rotate(180deg); }
-      100% { transform: translate(-10vw, -50vh) rotate(0deg); }
+      33% { transform: translate(-25vw, -30vh) rotate(240deg); }
+      66% { transform: translate(15vw, -15vh) rotate(120deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
     }
 
     .app-layout {
@@ -365,12 +367,6 @@
     let currentSessionId = null;
     let voiceEnabled = true;
 
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.getVoices();
-      };
-    }
-
     window.onload = function() {
       let sessions = getSessions();
       if (sessions.length === 0) {
@@ -386,7 +382,6 @@
       if (voiceEnabled) {
         voiceBtn.textContent = '🔊 Voice ON';
         voiceBtn.style.opacity = '1';
-        speak("Voice activated.");
       } else {
         voiceBtn.textContent = '🔇 Muted';
         voiceBtn.style.opacity = '0.6';
@@ -538,29 +533,44 @@
       startNewChat();
     }
 
-    function speak(text) {
-      if (!voiceEnabled || !('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
+    /* High Quality ElevenLabs Voice Integration */
+    async function speak(text) {
+      if (!voiceEnabled) return;
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      const voices = window.speechSynthesis.getVoices();
+      const ELEVENLABS_API_KEY = "YOUR_ELEVENLABS_API_KEY_HERE"; 
+      const VOICE_ID = "pNInz6obpgDQGcFmaJgB"; // Default: Adam (Clear Male Voice)
 
-      const softVoice = voices.find(v => 
-        v.lang.startsWith('en') && (
-          v.name.includes('Natural') || 
-          v.name.includes('Online') || 
-          v.name.includes('Google') || 
-          v.name.includes('Samantha') ||
-          v.name.includes('Karen') ||
-          v.name.includes('Daniel')
-        )
-      ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+      // Fallback to Web Speech if no key is provided
+      if (ELEVENLABS_API_KEY === "YOUR_ELEVENLABS_API_KEY_HERE") {
+        if (!('speechSynthesis' in window)) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.95;
+        window.speechSynthesis.speak(utterance);
+        return;
+      }
 
-      if (softVoice) utterance.voice = softVoice;
-      utterance.pitch = 0.95;
-      utterance.rate = 0.90;
+      try {
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'xi-api-key': ELEVENLABS_API_KEY
+          },
+          body: JSON.stringify({
+            text: text,
+            model_id: 'eleven_monolingual_v1',
+            voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+          })
+        });
 
-      window.speechSynthesis.speak(utterance);
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audio.play();
+      } catch (e) {
+        console.error("Voice output failed:", e);
+      }
     }
   </script>
 </body>
