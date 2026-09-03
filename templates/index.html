@@ -7,16 +7,37 @@
   
   <style>
     :root {
+      /* Dark Theme */
       --bg-gradient: radial-gradient(circle at 50% 20%, #100626 0%, #04060a 100%);
       --card-bg: rgba(18, 18, 30, 0.85);
       --card-border: rgba(0, 212, 255, 0.35);
       --text-main: #e0f7fa;
       --text-sub: #00d4ff;
       --msg-user-bg: linear-gradient(135deg, rgba(0, 212, 255, 0.35), rgba(112, 0, 255, 0.35));
+      --msg-user-border: rgba(0, 212, 255, 0.5);
       --msg-bot-bg: rgba(255, 255, 255, 0.08);
+      --msg-bot-border: rgba(255, 255, 255, 0.15);
       --input-bg: rgba(0, 0, 0, 0.6);
-      --accent-glow: 0 0 20px rgba(0, 212, 255, 0.5);
+      --accent-glow: 0 0 25px rgba(0, 212, 255, 0.6);
       --btn-bg: linear-gradient(135deg, #00d4ff, #7000ff);
+      --btn-text: #ffffff;
+    }
+
+    [data-theme="light"] {
+      /* Light Theme */
+      --bg-gradient: radial-gradient(circle at 50% 20%, #e0c3fc 0%, #8ec5fc 100%);
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --card-border: rgba(255, 255, 255, 0.95);
+      --text-main: #1e1e2f;
+      --text-sub: #4a00e0;
+      --msg-user-bg: linear-gradient(135deg, #8e2de2, #4a00e0);
+      --msg-user-border: rgba(142, 45, 226, 0.3);
+      --msg-bot-bg: rgba(255, 255, 255, 0.9);
+      --msg-bot-border: rgba(255, 255, 255, 0.95);
+      --input-bg: rgba(255, 255, 255, 0.9);
+      --accent-glow: 0 0 20px rgba(142, 45, 226, 0.4);
+      --btn-bg: linear-gradient(135deg, #8e2de2, #4a00e0);
+      --btn-text: #ffffff;
     }
 
     * {
@@ -34,7 +55,7 @@
       color: var(--text-main);
     }
 
-    /* Floating JARVIS Elements Overlay */
+    /* Floating Overlay */
     .overlay-container {
       position: fixed;
       inset: 0;
@@ -50,58 +71,189 @@
       border-radius: 50%;
       border: 2px dashed var(--text-sub);
       opacity: 0.25;
-      animation: floatOrbit 18s ease-in-out infinite alternate;
+      will-change: transform;
+      animation: floatOrbit1 20s ease-in-out infinite alternate, spinCW 30s linear infinite;
     }
 
-    @keyframes floatOrbit {
-      0% { transform: translate3d(-10vw, -10vh, 0) rotate(0deg); }
-      100% { transform: translate3d(40vw, 30vh, 0) rotate(360deg); }
+    .fg-jarvis-orb-2 {
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      border: 2px dotted rgba(112, 0, 255, 0.7);
+      opacity: 0.3;
+      will-change: transform;
+      animation: floatOrbit2 15s ease-in-out infinite alternate, spinCCW 20s linear infinite;
     }
 
-    /* Fullscreen Mobile Flex Layout */
+    @keyframes floatOrbit1 {
+      0% { transform: translate3d(-10vw, -10vh, 0) scale(0.9); }
+      50% { transform: translate3d(50vw, 35vh, 0) scale(1.1); }
+      100% { transform: translate3d(15vw, 65vh, 0) scale(0.85); }
+    }
+
+    @keyframes floatOrbit2 {
+      0% { transform: translate3d(65vw, 10vh, 0) scale(1.1); }
+      50% { transform: translate3d(10vw, 45vh, 0) scale(0.8); }
+      100% { transform: translate3d(55vw, 75vh, 0) scale(1.2); }
+    }
+
+    @keyframes spinCW { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes spinCCW { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
+
+    /* Main Flex Layout Using Dynamic Viewport Units */
     .app-layout {
-      display: flex;
-      flex-direction: column;
-      height: 100dvh; /* Dynamic viewport height for mobile browsers */
-      max-width: 900px;
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 1000px;
+      height: 100dvh;
       margin: 0 auto;
       padding: 10px;
+      display: flex;
+      gap: 12px;
     }
 
     .glass-card {
       background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border: 1px solid var(--card-border);
-      border-radius: 18px;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+      border-radius: 20px;
+    }
+
+    /* History Sidebar */
+    .history-panel {
+      width: 260px;
       display: flex;
       flex-direction: column;
+      padding: 16px;
+      flex-shrink: 0;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-weight: bold;
+      color: var(--text-sub);
+    }
+
+    .new-chat-btn {
+      width: 100%;
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      border: none;
+      padding: 10px;
+      border-radius: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 12px;
+      box-shadow: var(--accent-glow);
+    }
+
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-item {
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border: 1px solid transparent;
+    }
+
+    .history-item:hover, .history-item.active {
+      border-color: var(--card-border);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Main Chat Container */
+    .chat-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      min-width: 0;
       height: 100%;
       overflow: hidden;
     }
 
     .jarvis-header {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--card-border);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--card-border);
       flex-shrink: 0;
     }
 
-    .header-title {
-      font-weight: bold;
-      color: var(--text-sub);
-      font-size: 1.1rem;
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
-    /* Strictly Fixed Scroll Box */
+    .arc-reactor {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px dashed var(--text-sub);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: var(--accent-glow);
+      animation: spinReactor 12s linear infinite;
+    }
+
+    .arc-core {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--btn-bg);
+      box-shadow: var(--accent-glow);
+      animation: pulseCore 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes spinReactor { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes pulseCore { 0% { transform: scale(0.8); opacity: 0.7; } 100% { transform: scale(1.1); opacity: 1; } }
+
+    .controls { display: flex; gap: 8px; }
+
+    .theme-btn, .clear-btn, .mobile-history-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .mobile-history-btn { display: none; }
+
+    /* Touch Scroll Box */
     .chat-box {
-      flex: 1 1 auto;
+      flex: 1 1 0%;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      padding: 14px;
+      touch-action: pan-y;
+      margin: 12px 0;
       display: flex;
       flex-direction: column;
       gap: 12px;
+      padding-right: 6px;
     }
 
     .message {
@@ -116,30 +268,31 @@
     .user-msg {
       align-self: flex-end;
       background: var(--msg-user-bg);
-      border: 1px solid var(--card-border);
+      border: 1px solid var(--msg-user-border);
+      color: #ffffff;
+      border-bottom-right-radius: 4px;
     }
 
     .bot-msg {
       align-self: flex-start;
       background: var(--msg-bot-bg);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid var(--msg-bot-border);
+      color: var(--text-main);
+      border-bottom-left-radius: 4px;
     }
 
     .input-container {
-      padding: 12px;
-      border-top: 1px solid var(--card-border);
       display: flex;
-      gap: 8px;
+      gap: 10px;
       flex-shrink: 0;
-      background: rgba(0, 0, 0, 0.2);
     }
 
     input[type="text"] {
       flex: 1;
       background: var(--input-bg);
       border: 1px solid var(--card-border);
-      border-radius: 10px;
-      padding: 12px;
+      border-radius: 12px;
+      padding: 12px 14px;
       color: var(--text-main);
       outline: none;
       font-size: 0.95rem;
@@ -148,11 +301,26 @@
     .send-btn {
       background: var(--btn-bg);
       border: none;
-      color: #fff;
+      color: var(--btn-text);
       font-weight: bold;
       padding: 0 18px;
-      border-radius: 10px;
+      border-radius: 12px;
       cursor: pointer;
+      box-shadow: var(--accent-glow);
+    }
+
+    @media (max-width: 768px) {
+      .mobile-history-btn { display: block; }
+      .history-panel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 10;
+        display: none;
+      }
+      .history-panel.active { display: flex; }
     }
   </style>
 </head>
@@ -160,35 +328,120 @@
 
   <div class="overlay-container">
     <div class="fg-jarvis-orb-1"></div>
+    <div class="fg-jarvis-orb-2"></div>
   </div>
 
   <div class="app-layout">
-    <div class="glass-card">
+    <div class="glass-card history-panel" id="historyPanel">
+      <div class="history-header">
+        <span>Chat Sessions</span>
+        <button class="clear-btn" onclick="clearAllSessions()">Clear All</button>
+      </div>
+      <button class="new-chat-btn" onclick="startNewChat()">+ New Chat</button>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+    <div class="glass-card chat-section">
       <div class="jarvis-header">
-        <span class="header-title">J.A.R.V.I.S.</span>
-        <span style="font-size: 0.75rem; color: var(--text-sub);">Online</span>
+        <div class="header-left">
+          <div class="arc-reactor">
+            <div class="arc-core"></div>
+          </div>
+          <div>
+            <h2 style="font-size: 1.05rem;">J.A.R.V.I.S.</h2>
+            <p style="font-size: 0.72rem; color: var(--text-sub);">Educational Intelligence</p>
+          </div>
+        </div>
+        <div class="controls">
+          <button class="mobile-history-btn" onclick="toggleMobileHistory()">📜 Chats</button>
+          <button class="theme-btn" onclick="toggleTheme()" id="themeToggleBtn">☀️ Light</button>
+        </div>
       </div>
 
-      <!-- Scrolling container -->
-      <div class="chat-box" id="chatBox">
-        <div class="message bot-msg">Greetings! How may I assist your studies today?</div>
-      </div>
+      <div class="chat-box" id="chatBox"></div>
 
       <div class="input-container">
-        <input type="text" id="userInput" placeholder="Ask a question..." onkeydown="if(event.key==='Enter') sendQuery()">
+        <input type="text" id="userInput" placeholder="Ask any question..." onkeydown="if(event.key==='Enter') sendQuery()">
         <button class="send-btn" onclick="sendQuery()">Send</button>
       </div>
     </div>
   </div>
 
   <script>
+    let currentSessionId = null;
+
+    window.onload = function() {
+      let sessions = getSessions();
+      if (sessions.length === 0) {
+        startNewChat();
+      } else {
+        loadSession(sessions[0].id);
+      }
+    };
+
+    function toggleMobileHistory() {
+      document.getElementById('historyPanel').classList.toggle('active');
+    }
+
+    function toggleTheme() {
+      const body = document.body;
+      const themeBtn = document.getElementById('themeToggleBtn');
+      if (body.getAttribute('data-theme') === 'light') {
+        body.removeAttribute('data-theme');
+        themeBtn.textContent = '☀️ Light';
+      } else {
+        body.setAttribute('data-theme', 'light');
+        themeBtn.textContent = '🌙 Dark';
+      }
+    }
+
+    function getSessions() {
+      return JSON.parse(localStorage.getItem('jarvis_sessions') || '[]');
+    }
+
+    function saveSessions(sessions) {
+      localStorage.setItem('jarvis_sessions', JSON.stringify(sessions));
+      renderHistoryList();
+    }
+
+    function startNewChat() {
+      currentSessionId = 'session_' + Date.now();
+      let sessions = getSessions();
+      sessions.unshift({
+        id: currentSessionId,
+        title: 'New Conversation',
+        messages: [{ sender: 'bot', text: 'Greetings! I am JARVIS. How may I assist your studies today?' }]
+      });
+      saveSessions(sessions);
+      loadSession(currentSessionId);
+      if (window.innerWidth <= 768) {
+        document.getElementById('historyPanel').classList.remove('active');
+      }
+    }
+
+    function loadSession(id) {
+      currentSessionId = id;
+      let sessions = getSessions();
+      let session = sessions.find(s => s.id === id);
+      const chatBox = document.getElementById('chatBox');
+      chatBox.innerHTML = '';
+
+      if (session) {
+        session.messages.forEach(msg => {
+          appendMessageUI(msg.text, msg.sender === 'user' ? 'user-msg' : 'bot-msg');
+        });
+      }
+      renderHistoryList();
+    }
+
     async function sendQuery() {
-      const input = document.getElementById('userInput');
-      const text = input.value.trim();
+      const inputField = document.getElementById('userInput');
+      const text = inputField.value.trim();
       if (!text) return;
 
       appendMessageUI(text, 'user-msg');
-      input.value = '';
+      saveMessageToSession(text, 'user');
+      inputField.value = '';
 
       try {
         const response = await fetch('/api/jarvis', {
@@ -199,11 +452,19 @@
 
         const data = await response.json();
 
-        if (response.status === 429 || (data.error && data.error.includes("429"))) {
-          appendMessageUI("⚠️ Quota limit reached for free tier. Please wait 1-2 minutes before sending another message.", 'bot-msg');
-        } else {
-          appendMessageUI(data.reply || data.error || "System responded.", 'bot-msg');
+        /* Catch API 429 Quota Exhausted limits */
+        if (response.status === 429 || (data.error && JSON.stringify(data.error).includes("429"))) {
+          const quotaMsg = "⚠️ Quota limit reached for free tier. Please wait ~60 seconds before sending another message.";
+          appendMessageUI(quotaMsg, 'bot-msg');
+          saveMessageToSession(quotaMsg, 'bot');
+          speak("Quota limit reached. Please wait one minute.");
+          return;
         }
+
+        const reply = data.reply || data.error || "Systems standard response.";
+        appendMessageUI(reply, 'bot-msg');
+        saveMessageToSession(reply, 'bot');
+        speak(reply);
 
       } catch (err) {
         appendMessageUI("Central command connection failed.", 'bot-msg');
@@ -216,9 +477,63 @@
       msgDiv.className = `message ${className}`;
       msgDiv.textContent = text;
       chatBox.appendChild(msgDiv);
-      
-      // Forces immediate scroll to newest message
-      chatBox.scrollTop = chatBox.scrollHeight;
+
+      /* Scroll immediately to the newest message */
+      setTimeout(() => {
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }, 50);
+    }
+
+    function saveMessageToSession(text, sender) {
+      let sessions = getSessions();
+      let session = sessions.find(s => s.id === currentSessionId);
+      if (session) {
+        if (session.title === 'New Conversation' && sender === 'user') {
+          session.title = text.length > 28 ? text.substring(0, 28) + '...' : text;
+        }
+        session.messages.push({ sender, text });
+        saveSessions(sessions);
+      }
+    }
+
+    function renderHistoryList() {
+      const historyList = document.getElementById('historyList');
+      if (!historyList) return;
+      let sessions = getSessions();
+      historyList.innerHTML = '';
+
+      sessions.forEach(s => {
+        const div = document.createElement('div');
+        div.className = `history-item ${s.id === currentSessionId ? 'active' : ''}`;
+        div.textContent = s.title;
+        div.onclick = () => {
+          loadSession(s.id);
+          if (window.innerWidth <= 768) {
+            document.getElementById('historyPanel').classList.remove('active');
+          }
+        };
+        historyList.appendChild(div);
+      });
+    }
+
+    function clearAllSessions() {
+      localStorage.removeItem('jarvis_sessions');
+      startNewChat();
+    }
+
+    function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      const softVoice = voices.find(v => v.lang.includes('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha'))) || voices[0];
+
+      if (softVoice) utterance.voice = softVoice;
+      utterance.pitch = 1.0;
+      utterance.rate = 0.95;
+
+      window.speechSynthesis.speak(utterance);
     }
   </script>
 </body>
