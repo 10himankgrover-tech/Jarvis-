@@ -7,7 +7,6 @@
   
   <style>
     :root {
-      /* Dark Theme */
       --bg-gradient: radial-gradient(circle at 50% 20%, #100626 0%, #04060a 100%);
       --card-bg: rgba(18, 18, 30, 0.85);
       --card-border: rgba(0, 212, 255, 0.35);
@@ -24,7 +23,6 @@
     }
 
     [data-theme="light"] {
-      /* Light Theme */
       --bg-gradient: radial-gradient(circle at 50% 20%, #e0c3fc 0%, #8ec5fc 100%);
       --card-bg: rgba(255, 255, 255, 0.85);
       --card-border: rgba(255, 255, 255, 0.95);
@@ -60,52 +58,46 @@
       position: fixed;
       inset: 0;
       pointer-events: none;
-      z-index: 99;
+      z-index: 0;
       overflow: hidden;
     }
 
     .fg-jarvis-orb-1 {
       position: absolute;
-      width: 280px;
-      height: 280px;
-      top: 10%;
-      left: 10%;
+      width: 320px;
+      height: 320px;
+      top: 5%;
+      left: 5%;
       border-radius: 50%;
       border: 2px dashed var(--text-sub);
-      opacity: 0.25;
-      animation: infiniteOrbit1 25s ease-in-out infinite;
+      opacity: 0.3;
+      animation: infiniteOrbit1 22s ease-in-out infinite alternate;
     }
 
     .fg-jarvis-orb-2 {
       position: absolute;
-      width: 200px;
-      height: 200px;
-      bottom: 15%;
-      right: 10%;
+      width: 220px;
+      height: 220px;
+      bottom: 10%;
+      right: 5%;
       border-radius: 50%;
       border: 2px dotted rgba(112, 0, 255, 0.7);
-      opacity: 0.3;
-      animation: infiniteOrbit2 20s ease-in-out infinite;
+      opacity: 0.35;
+      animation: infiniteOrbit2 18s ease-in-out infinite alternate;
     }
 
-    /* Continuous 360-degree looping motion */
     @keyframes infiniteOrbit1 {
       0% { transform: translate(0, 0) rotate(0deg); }
-      25% { transform: translate(35vw, 20vh) rotate(90deg); }
-      50% { transform: translate(20vw, 50vh) rotate(180deg); }
-      75% { transform: translate(-10vw, 30vh) rotate(270deg); }
-      100% { transform: translate(0, 0) rotate(360deg); }
+      50% { transform: translate(40vw, 30vh) rotate(180deg); }
+      100% { transform: translate(10vw, 60vh) rotate(360deg); }
     }
 
     @keyframes infiniteOrbit2 {
       0% { transform: translate(0, 0) rotate(360deg); }
-      25% { transform: translate(-30vw, -20vh) rotate(270deg); }
-      50% { transform: translate(-15vw, -40vh) rotate(180deg); }
-      75% { transform: translate(15vw, -20vh) rotate(90deg); }
-      100% { transform: translate(0, 0) rotate(0deg); }
+      50% { transform: translate(-35vw, -25vh) rotate(180deg); }
+      100% { transform: translate(-10vw, -50vh) rotate(0deg); }
     }
 
-    /* Main Flex Layout */
     .app-layout {
       position: relative;
       z-index: 1;
@@ -127,7 +119,6 @@
       border-radius: 20px;
     }
 
-    /* History Sidebar */
     .history-panel {
       width: 260px;
       display: flex;
@@ -183,7 +174,6 @@
       background: rgba(255, 255, 255, 0.15);
     }
 
-    /* Main Chat Container */
     .chat-section {
       flex: 1;
       display: flex;
@@ -233,21 +223,20 @@
     @keyframes spinReactor { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     @keyframes pulseCore { 0% { transform: scale(0.8); opacity: 0.7; } 100% { transform: scale(1.1); opacity: 1; } }
 
-    .controls { display: flex; gap: 8px; }
+    .controls { display: flex; gap: 6px; flex-wrap: wrap; }
 
     .theme-btn, .voice-btn, .clear-btn, .mobile-history-btn {
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid var(--card-border);
       color: var(--text-main);
-      padding: 6px 12px;
+      padding: 6px 10px;
       border-radius: 20px;
       cursor: pointer;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
     }
 
     .mobile-history-btn { display: none; }
 
-    /* Touch Scroll Box */
     .chat-box {
       flex: 1 1 0%;
       overflow-y: auto;
@@ -376,7 +365,6 @@
     let currentSessionId = null;
     let voiceEnabled = true;
 
-    // Load available voices into the browser engine immediately
     if ('speechSynthesis' in window) {
       window.speechSynthesis.onvoiceschanged = () => {
         window.speechSynthesis.getVoices();
@@ -398,8 +386,9 @@
       if (voiceEnabled) {
         voiceBtn.textContent = '🔊 Voice ON';
         voiceBtn.style.opacity = '1';
+        speak("Voice activated.");
       } else {
-        voiceBtn.textContent = 'Mute Voice';
+        voiceBtn.textContent = '🔇 Muted';
         voiceBtn.style.opacity = '0.6';
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
       }
@@ -441,7 +430,6 @@
       });
       saveSessions(sessions);
       loadSession(currentSessionId);
-      speak(initialGreeting);
       if (window.innerWidth <= 768) {
         document.getElementById('historyPanel').classList.remove('active');
       }
@@ -481,7 +469,6 @@
         const data = await response.json();
         const rawResponse = JSON.stringify(data);
 
-        /* Detect 429 quota exhaustion and replace with custom message */
         if (response.status === 429 || rawResponse.includes("429") || rawResponse.includes("RESOURCE_EXHAUSTED")) {
           const quotaText = "JARVIS is recharging, please wait 60 seconds.";
           appendMessageUI(quotaText, 'bot-msg');
@@ -551,7 +538,6 @@
       startNewChat();
     }
 
-    /* Enhanced Soft & Clear Voice Engine */
     function speak(text) {
       if (!voiceEnabled || !('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
@@ -559,8 +545,7 @@
       const utterance = new SpeechSynthesisUtterance(text);
       const voices = window.speechSynthesis.getVoices();
 
-      // Priority list targeting soft, natural, high-clarity voice profiles
-      const smoothVoice = voices.find(v => 
+      const softVoice = voices.find(v => 
         v.lang.startsWith('en') && (
           v.name.includes('Natural') || 
           v.name.includes('Online') || 
@@ -571,9 +556,7 @@
         )
       ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
 
-      if (smoothVoice) utterance.voice = smoothVoice;
-      
-      // Pitch & rate adjustments tuned for smooth, calm delivery
+      if (softVoice) utterance.voice = softVoice;
       utterance.pitch = 0.95;
       utterance.rate = 0.90;
 
