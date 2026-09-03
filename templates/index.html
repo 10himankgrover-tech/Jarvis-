@@ -1,544 +1,226 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>J.A.R.V.I.S.</title>
-<style>
-  :root {
-    --void: #05070a;
-    --panel: #0c0f14;
-    --cyan: #4fd8e8;
-    --cyan-dim: #2a6b74;
-    --text: #e6f4f6;
-    --text-dim: #7f939a;
-    --red: #ff5d5d;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JARVIS — Educational AI Assistant</title>
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
+      color: #e0f7fa;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
 
-  html, body {
-    height: 100%;
-    background: var(--void);
-    color: var(--text);
-    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
-    overflow: hidden;
-  }
+    /* Glassmorphism Container */
+    .glass-card {
+      width: 90%;
+      max-width: 650px;
+      height: 85vh;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+    }
 
-  /* ================= BACKGROUND ================= */
-  #bg-canvas {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-  }
+    /* Animated JARVIS Arc Reactor Header */
+    .jarvis-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
 
-  /* ================= LAYOUT ================= */
-  .shell {
-    position: relative;
-    z-index: 1;
-    height: 100vh;
-    height: 100dvh;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px 16px;
-  }
+    .orb {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #00d4ff 0%, rgba(9,9,121,0.2) 70%);
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+      animation: pulse 3s infinite ease-in-out;
+    }
 
-  /* ================= ORB ================= */
-  .orb-wrap {
-    position: relative;
-    width: 120px;
-    height: 120px;
-    margin: 8px 0 4px;
-    flex-shrink: 0;
-  }
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 15px rgba(0, 212, 255, 0.4); }
+      50% { transform: scale(1.05); box-shadow: 0 0 30px rgba(0, 212, 255, 0.8); }
+      100% { transform: scale(0.95); box-shadow: 0 0 15px rgba(0, 212, 255, 0.4); }
+    }
 
-  .orb-glow {
-    position: absolute;
-    inset: -30px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(79,216,232,0.28) 0%, rgba(79,216,232,0) 70%);
-    filter: blur(4px);
-    animation: breathe 3.2s ease-in-out infinite;
-  }
+    /* Chat Display Area */
+    .chat-box {
+      flex: 1;
+      overflow-y: auto;
+      margin: 15px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-right: 5px;
+    }
 
-  @keyframes breathe {
-    0%, 100% { transform: scale(0.94); opacity: 0.7; }
-    50% { transform: scale(1.06); opacity: 1; }
-  }
+    .message {
+      padding: 12px 16px;
+      border-radius: 12px;
+      max-width: 80%;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
 
-  .orb {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    position: relative;
-    background: radial-gradient(circle at 35% 30%, #cffcff 0%, var(--cyan) 35%, #0c3d43 100%);
-    box-shadow:
-      0 0 30px rgba(79,216,232,0.55),
-      inset 0 0 20px rgba(0,0,0,0.35);
-    animation: pulse 2.4s ease-in-out infinite;
-  }
+    .user-msg {
+      align-self: flex-end;
+      background: rgba(0, 212, 255, 0.2);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      color: #fff;
+    }
 
-  .orb.listening {
-    animation: pulse-fast 0.9s ease-in-out infinite;
-    box-shadow:
-      0 0 46px rgba(79,216,232,0.85),
-      inset 0 0 20px rgba(0,0,0,0.35);
-  }
+    .bot-msg {
+      align-self: flex-start;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #e0f7fa;
+    }
 
-  .orb.speaking {
-    animation: pulse-speak 0.55s ease-in-out infinite;
-  }
+    /* Input Controls */
+    .input-container {
+      display: flex;
+      gap: 10px;
+    }
 
-  @keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.035); }
-  }
-  @keyframes pulse-fast {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.09); }
-  }
-  @keyframes pulse-speak {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-  }
+    input[type="text"] {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      padding: 12px;
+      color: #fff;
+      outline: none;
+    }
 
-  .orb-ring {
-    position: absolute;
-    inset: -10px;
-    border-radius: 50%;
-    border: 1px solid rgba(79,216,232,0.25);
-    animation: spin 12s linear infinite;
-  }
-  .orb-ring.r2 {
-    inset: -18px;
-    border-color: rgba(79,216,232,0.12);
-    animation-duration: 20s;
-    animation-direction: reverse;
-  }
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
+    button {
+      background: #00d4ff;
+      border: none;
+      color: #090a0f;
+      font-weight: bold;
+      padding: 0 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
 
-  .status-label {
-    margin-top: 10px;
-    font-size: 0.72rem;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    font-weight: 500;
-    height: 16px;
-  }
-
-  /* ================= CHAT ================= */
-  .chat-scroll {
-    flex: 1;
-    min-height: 0;
-    width: 100%;
-    max-width: 640px;
-    overflow-y: auto;
-    margin-top: 14px;
-    padding: 4px 2px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .chat-scroll::-webkit-scrollbar { width: 4px; }
-  .chat-scroll::-webkit-scrollbar-thumb { background: var(--cyan-dim); border-radius: 4px; }
-
-  .bubble {
-    max-width: 82%;
-    padding: 11px 15px;
-    border-radius: 16px;
-    font-size: 0.94rem;
-    line-height: 1.45;
-    animation: rise 0.25s ease;
-  }
-
-  @keyframes rise {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .bubble.user {
-    align-self: flex-end;
-    background: #16202a;
-    color: #d7e6ea;
-    border-bottom-right-radius: 4px;
-  }
-
-  .bubble.jarvis {
-    align-self: flex-start;
-    background: var(--panel);
-    border: 1px solid rgba(79,216,232,0.18);
-    color: var(--text);
-    border-bottom-left-radius: 4px;
-  }
-
-  .bubble.error {
-    align-self: center;
-    background: rgba(255,93,93,0.08);
-    border: 1px solid rgba(255,93,93,0.3);
-    color: #ffb3b3;
-    font-size: 0.85rem;
-  }
-
-  .typing {
-    align-self: flex-start;
-    display: flex;
-    gap: 4px;
-    padding: 10px 15px;
-  }
-  .typing span {
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: var(--cyan);
-    animation: bounce 1s infinite ease-in-out;
-  }
-  .typing span:nth-child(2) { animation-delay: 0.15s; }
-  .typing span:nth-child(3) { animation-delay: 0.3s; }
-  @keyframes bounce {
-    0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
-    40% { transform: translateY(-5px); opacity: 1; }
-  }
-
-  /* ================= INPUT BAR ================= */
-  .input-row {
-    width: 100%;
-    max-width: 640px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 10px;
-  }
-
-  .text-field {
-    flex: 1;
-    background: var(--panel);
-    border: 1px solid rgba(79,216,232,0.15);
-    border-radius: 22px;
-    padding: 12px 18px;
-    color: var(--text);
-    font-size: 0.95rem;
-    outline: none;
-  }
-  .text-field::placeholder { color: var(--text-dim); }
-  .text-field:focus { border-color: var(--cyan-dim); }
-
-  .icon-btn {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    border: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: transform 0.15s ease, background 0.15s ease;
-  }
-  .icon-btn:active { transform: scale(0.92); }
-
-  .mic-btn {
-    background: var(--panel);
-    border: 1px solid rgba(79,216,232,0.2);
-    color: var(--cyan);
-  }
-  .mic-btn.active {
-    background: var(--red);
-    border-color: var(--red);
-    color: #fff;
-  }
-
-  .send-btn {
-    background: var(--cyan);
-    color: #06181a;
-  }
-
-  .mute-toggle {
-    position: absolute;
-    top: 18px;
-    right: 18px;
-    z-index: 2;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background: rgba(12,15,20,0.7);
-    border: 1px solid rgba(79,216,232,0.2);
-    color: var(--text-dim);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-  .mute-toggle.on { color: var(--cyan); border-color: var(--cyan-dim); }
-
-  svg { width: 20px; height: 20px; }
-</style>
+    button:hover {
+      background: #70e4ff;
+    }
+  </style>
 </head>
 <body>
 
-<canvas id="bg-canvas"></canvas>
+  <div class="glass-card">
+    <div class="jarvis-header">
+      <div class="orb"></div>
+      <div>
+        <h2>J.A.R.V.I.S.</h2>
+        <p style="font-size: 0.8rem; opacity: 0.7;">Educational Assistant Active</p>
+      </div>
+    </div>
 
-<button class="mute-toggle on" id="muteToggle" title="Toggle voice replies">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-    <path id="speakerIcon" d="M11 5 6 9H2v6h4l5 4V5z"/>
-    <path id="wave1" d="M15.5 8.5a5 5 0 0 1 0 7"/>
-    <path id="wave2" d="M18.5 5.5a9 9 0 0 1 0 13"/>
-  </svg>
-</button>
+    <div class="chat-box" id="chatBox">
+      <div class="message bot-msg">Hello! Systems are online. Ask me any study question!</div>
+    </div>
 
-<div class="shell">
-
-  <div class="orb-wrap">
-    <div class="orb-glow"></div>
-    <div class="orb-ring"></div>
-    <div class="orb-ring r2"></div>
-    <div class="orb" id="orb"></div>
-  </div>
-  <div class="status-label" id="statusLabel">Standing by</div>
-
-  <div class="chat-scroll" id="chatScroll">
-    <div class="bubble jarvis">Good day. Systems are online. How may I assist?</div>
+    <div class="input-container">
+      <input type="text" id="userInput" placeholder="Ask JARVIS a question..." onkeydown="if(event.key==='Enter') sendQuery()">
+      <button onclick="sendQuery()">Send</button>
+    </div>
   </div>
 
-  <div class="input-row">
-    <button class="icon-btn mic-btn" id="micBtn" title="Speak">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-        <line x1="12" y1="19" x2="12" y2="23"/>
-      </svg>
-    </button>
-    <input type="text" class="text-field" id="promptInput" placeholder="Ask JARVIS..." autocomplete="off" />
-    <button class="icon-btn send-btn" id="sendBtn" title="Send">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="22" y1="2" x2="11" y2="13"/>
-        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-      </svg>
-    </button>
-  </div>
+  <script>
+    // Load local history on page load
+    window.onload = function() {
+      loadHistory();
+    };
 
-</div>
+    async function sendQuery() {
+      const inputField = document.getElementById('userInput');
+      const text = inputField.value.trim();
+      if (!text) return;
 
-<script>
-/* ============== MINIMAL PARTICLE BACKGROUND ============== */
-(function () {
-  const canvas = document.getElementById('bg-canvas');
-  const ctx = canvas.getContext('2d');
-  let w, h;
+      appendMessage(text, 'user-msg');
+      inputField.value = '';
 
-  function resize() {
-    w = canvas.width = window.innerWidth;
-    h = canvas.height = window.innerHeight;
-  }
-  window.addEventListener('resize', resize);
-  resize();
+      try {
+        const response = await fetch('/api/jarvis', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: text })
+        });
 
-  const COUNT = Math.min(50, Math.floor((window.innerWidth * window.innerHeight) / 26000));
-  const dots = [];
-  for (let i = 0; i < COUNT; i++) {
-    dots.push({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      r: Math.random() * 1.2 + 0.4,
-      vy: Math.random() * 0.12 + 0.03,
-      alpha: Math.random() * 0.4 + 0.15
-    });
-  }
+        const data = await response.json();
+        const reply = data.reply || "Systems standard response.";
+        
+        appendMessage(reply, 'bot-msg');
+        speak(reply);
+        saveHistory(text, reply);
 
-  function render() {
-    ctx.clearRect(0, 0, w, h);
-    for (const d of dots) {
-      d.y -= d.vy;
-      if (d.y < -5) { d.y = h + 5; d.x = Math.random() * w; }
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(79,216,232,${d.alpha})`;
-      ctx.fill();
+      } catch (err) {
+        appendMessage("Central command connection failed.", 'bot-msg');
+      }
     }
-    requestAnimationFrame(render);
-  }
-  requestAnimationFrame(render);
-})();
 
-/* ============== JARVIS APP LOGIC ============== */
-(function () {
-  const chatScroll = document.getElementById('chatScroll');
-  const promptInput = document.getElementById('promptInput');
-  const sendBtn = document.getElementById('sendBtn');
-  const micBtn = document.getElementById('micBtn');
-  const orb = document.getElementById('orb');
-  const statusLabel = document.getElementById('statusLabel');
-  const muteToggle = document.getElementById('muteToggle');
-
-  let voiceEnabled = true;
-  let recognizing = false;
-
-  muteToggle.addEventListener('click', () => {
-    voiceEnabled = !voiceEnabled;
-    muteToggle.classList.toggle('on', voiceEnabled);
-    if (!voiceEnabled) window.speechSynthesis.cancel();
-  });
-
-  function setStatus(text) { statusLabel.textContent = text; }
-
-  function appendBubble(text, cls) {
-    const b = document.createElement('div');
-    b.className = `bubble ${cls}`;
-    b.textContent = text;
-    chatScroll.appendChild(b);
-    chatScroll.scrollTop = chatScroll.scrollHeight;
-    return b;
-  }
-
-  function showTyping() {
-    const t = document.createElement('div');
-    t.className = 'typing';
-    t.id = 'typingIndicator';
-    t.innerHTML = '<span></span><span></span><span></span>';
-    chatScroll.appendChild(t);
-    chatScroll.scrollTop = chatScroll.scrollHeight;
-  }
-  function hideTyping() {
-    const t = document.getElementById('typingIndicator');
-    if (t) t.remove();
-  }
-
-  /* Pick the deepest, most "male British narrator" voice available on the device.
-     Browsers load voices asynchronously, so we cache the list once ready. */
-  let cachedVoices = [];
-  function loadVoices() {
-    cachedVoices = window.speechSynthesis.getVoices();
-  }
-  loadVoices();
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-  }
-
-  function pickJarvisVoice() {
-    if (!cachedVoices.length) return null;
-    const preferredNames = [
-      'Google UK English Male', 'Daniel', 'Arthur', 'Oliver',
-      'Microsoft Ryan', 'Microsoft George', 'en-GB'
-    ];
-    for (const name of preferredNames) {
-      const match = cachedVoices.find(v => v.name.includes(name) || v.lang.includes(name));
-      if (match) return match;
+    function appendMessage(text, className) {
+      const chatBox = document.getElementById('chatBox');
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `message ${className}`;
+      msgDiv.textContent = text;
+      chatBox.appendChild(msgDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
-    const anyMale = cachedVoices.find(v => v.lang.startsWith('en') && /male/i.test(v.name));
-    if (anyMale) return anyMale;
-    const anyEnglish = cachedVoices.find(v => v.lang.startsWith('en'));
-    return anyEnglish || cachedVoices[0];
-  }
 
-  function speak(text) {
-    if (!voiceEnabled || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    const voice = pickJarvisVoice();
-    if (voice) utter.voice = voice;
-    utter.rate = 0.95;
-    utter.pitch = 0.55;
-    utter.volume = 1.0;
-    utter.onstart = () => { orb.classList.add('speaking'); setStatus('Speaking'); };
-    utter.onend = () => { orb.classList.remove('speaking'); setStatus('Standing by'); };
-    window.speechSynthesis.speak(utter);
-  }
+    /* Soft Clear Speech Output */
+    function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
 
-  async function sendPrompt(text) {
-    const prompt = (text !== undefined ? text : promptInput.value).trim();
-    if (!prompt) return;
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      const softVoice = voices.find(v => v.lang.includes('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha'))) || voices[0];
 
-    appendBubble(prompt, 'user');
-    promptInput.value = '';
-    sendBtn.disabled = true;
-    showTyping();
-    setStatus('Thinking');
+      if (softVoice) utterance.voice = softVoice;
+      utterance.pitch = 1.0;
+      utterance.rate = 0.95; // Slightly slower pacing for soft clarity
 
-    try {
-      const res = await fetch('/api/jarvis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+      window.speechSynthesis.speak(utterance);
+    }
+
+    /* Browser localStorage Search History */
+    function saveHistory(prompt, response) {
+      let history = JSON.parse(localStorage.getItem('jarvis_student_history') || '[]');
+      history.push({ prompt, response, timestamp: new Date().toISOString() });
+      localStorage.setItem('jarvis_student_history', JSON.stringify(history));
+    }
+
+    function loadHistory() {
+      let history = JSON.parse(localStorage.getItem('jarvis_student_history') || '[]');
+      history.forEach(item => {
+        appendMessage(item.prompt, 'user-msg');
+        appendMessage(item.response, 'bot-msg');
       });
-      const data = await res.json();
-      hideTyping();
-
-      if (!res.ok) {
-        appendBubble(data.reply || 'Unknown error.', 'error');
-        setStatus('Standing by');
-      } else {
-        appendBubble(data.reply, 'jarvis');
-        speak(data.reply);
-      }
-    } catch (err) {
-      hideTyping();
-      appendBubble('Connection to central command lost.', 'error');
-      setStatus('Standing by');
-    } finally {
-      sendBtn.disabled = false;
     }
-  }
-
-  sendBtn.addEventListener('click', () => sendPrompt());
-  promptInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') sendPrompt();
-  });
-
-  /* ---------- Voice input (speech recognition) ---------- */
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let recognizer = null;
-
-  if (SpeechRecognition) {
-    recognizer = new SpeechRecognition();
-    recognizer.lang = 'en-US';
-    recognizer.interimResults = false;
-    recognizer.maxAlternatives = 1;
-
-    recognizer.onstart = () => {
-      recognizing = true;
-      micBtn.classList.add('active');
-      orb.classList.add('listening');
-      setStatus('Listening');
-    };
-
-    recognizer.onend = () => {
-      recognizing = false;
-      micBtn.classList.remove('active');
-      orb.classList.remove('listening');
-      setStatus('Standing by');
-    };
-
-    recognizer.onerror = () => {
-      recognizing = false;
-      micBtn.classList.remove('active');
-      orb.classList.remove('listening');
-      setStatus('Standing by');
-    };
-
-    recognizer.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      promptInput.value = transcript;
-      sendPrompt(transcript);
-    };
-
-    micBtn.addEventListener('click', () => {
-      if (recognizing) {
-        recognizer.stop();
-      } else {
-        window.speechSynthesis.cancel();
-        try { recognizer.start(); } catch (e) {}
-      }
-    });
-  } else {
-    micBtn.style.display = 'none';
-  }
-})();
-</script>
-
+  </script>
 </body>
 </html>
