@@ -16,7 +16,7 @@ from google.genai import types
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-MODEL_NAME = "gemini-3.6-flash"
+MODEL_NAME = "gemini-2.5-pro"
 MAX_OUTPUT_TOKENS = 500
 
 logging.basicConfig(level=logging.INFO)
