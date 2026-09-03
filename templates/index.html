@@ -324,8 +324,8 @@
       border: none;
       color: var(--btn-text);
       font-weight: bold;
-      padding: 0 18px;
-      border-radius: 12px;
+      padding: 0 16px;
+      border-radius: 10px;
       cursor: pointer;
       box-shadow: var(--accent-glow);
     }
@@ -540,7 +540,7 @@
         const rawResponse = JSON.stringify(data);
 
         if (response.status === 429 || rawResponse.includes("429") || rawResponse.includes("RESOURCE_EXHAUSTED")) {
-          const quotaText = "JARVIS is recharging, please wait 60 seconds.";
+          const quotaText = "JARVIS is recharging.";
           appendMessageUI(quotaText, 'bot-msg');
           saveMessageToSession(quotaText, 'bot');
           speak(quotaText);
