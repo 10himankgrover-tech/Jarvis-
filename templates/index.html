@@ -101,7 +101,7 @@
     @keyframes spinCW { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     @keyframes spinCCW { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
 
-    /* Main Flex Layout Using Dynamic Viewport Units */
+    /* Main Flex Layout */
     .app-layout {
       position: relative;
       z-index: 1;
@@ -407,13 +407,15 @@
     function startNewChat() {
       currentSessionId = 'session_' + Date.now();
       let sessions = getSessions();
+      const initialGreeting = 'Greetings! I am JARVIS. How may I assist your studies today?';
       sessions.unshift({
         id: currentSessionId,
         title: 'New Conversation',
-        messages: [{ sender: 'bot', text: 'Greetings! I am JARVIS. How may I assist your studies today?' }]
+        messages: [{ sender: 'bot', text: initialGreeting }]
       });
       saveSessions(sessions);
       loadSession(currentSessionId);
+      speak(initialGreeting);
       if (window.innerWidth <= 768) {
         document.getElementById('historyPanel').classList.remove('active');
       }
@@ -451,13 +453,14 @@
         });
 
         const data = await response.json();
+        const rawResponse = JSON.stringify(data);
 
-        /* Catch API 429 Quota Exhausted limits */
-        if (response.status === 429 || (data.error && JSON.stringify(data.error).includes("429"))) {
-          const quotaMsg = "⚠️ Quota limit reached for free tier. Please wait ~60 seconds before sending another message.";
-          appendMessageUI(quotaMsg, 'bot-msg');
-          saveMessageToSession(quotaMsg, 'bot');
-          speak("Quota limit reached. Please wait one minute.");
+        /* Detect 429 quota exhaustion and replace with custom message */
+        if (response.status === 429 || rawResponse.includes("429") || rawResponse.includes("RESOURCE_EXHAUSTED")) {
+          const quotaText = "JARVIS is recharging, please wait 60 seconds.";
+          appendMessageUI(quotaText, 'bot-msg');
+          saveMessageToSession(quotaText, 'bot');
+          speak(quotaText);
           return;
         }
 
@@ -467,7 +470,9 @@
         speak(reply);
 
       } catch (err) {
-        appendMessageUI("Central command connection failed.", 'bot-msg');
+        const errorMsg = "Central command connection failed.";
+        appendMessageUI(errorMsg, 'bot-msg');
+        speak(errorMsg);
       }
     }
 
@@ -478,7 +483,6 @@
       msgDiv.textContent = text;
       chatBox.appendChild(msgDiv);
 
-      /* Scroll immediately to the newest message */
       setTimeout(() => {
         chatBox.scrollTop = chatBox.scrollHeight;
       }, 50);
@@ -521,6 +525,7 @@
       startNewChat();
     }
 
+    /* Voice Speech Synthesis Function */
     function speak(text) {
       if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
