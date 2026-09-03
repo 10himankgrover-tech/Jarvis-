@@ -465,7 +465,7 @@
         const rawResponse = JSON.stringify(data);
 
         if (response.status === 429 || rawResponse.includes("429") || rawResponse.includes("RESOURCE_EXHAUSTED")) {
-          const quotaText = "JARVIS is recharging, please wait 60 seconds.";
+          const quotaText = "JARVIS is recharging";
           appendMessageUI(quotaText, 'bot-msg');
           saveMessageToSession(quotaText, 'bot');
           speak(quotaText);
