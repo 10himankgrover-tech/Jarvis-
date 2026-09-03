@@ -6,61 +6,213 @@
   <title>JARVIS — Educational AI Assistant</title>
   
   <style>
+    :root {
+      /* Dark Theme (Vibrant Glowing Arc Style) */
+      --bg-gradient: radial-gradient(circle at 50% 20%, #1a0b36 0%, #080c14 100%);
+      --card-bg: rgba(20, 20, 35, 0.55);
+      --card-border: rgba(0, 212, 255, 0.25);
+      --text-main: #e0f7fa;
+      --text-sub: #00d4ff;
+      --msg-user-bg: linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(112, 0, 255, 0.3));
+      --msg-user-border: rgba(0, 212, 255, 0.4);
+      --msg-bot-bg: rgba(255, 255, 255, 0.07);
+      --msg-bot-border: rgba(255, 255, 255, 0.15);
+      --input-bg: rgba(0, 0, 0, 0.4);
+      --accent-glow: 0 0 25px rgba(0, 212, 255, 0.6);
+      --btn-bg: linear-gradient(135deg, #00d4ff, #7000ff);
+      --btn-text: #ffffff;
+    }
+
+    [data-theme="light"] {
+      /* Light Theme (Vibrant Neon Glass) */
+      --bg-gradient: radial-gradient(circle at 50% 20%, #e0c3fc 0%, #8ec5fc 100%);
+      --card-bg: rgba(255, 255, 255, 0.65);
+      --card-border: rgba(255, 255, 255, 0.8);
+      --text-main: #1e1e2f;
+      --text-sub: #4a00e0;
+      --msg-user-bg: linear-gradient(135deg, #8e2de2, #4a00e0);
+      --msg-user-border: rgba(142, 45, 226, 0.3);
+      --msg-bot-bg: rgba(255, 255, 255, 0.85);
+      --msg-bot-border: rgba(255, 255, 255, 0.9);
+      --input-bg: rgba(255, 255, 255, 0.8);
+      --accent-glow: 0 0 20px rgba(142, 45, 226, 0.4);
+      --btn-bg: linear-gradient(135deg, #8e2de2, #4a00e0);
+      --btn-text: #ffffff;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
     }
 
     body {
-      background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
-      color: #e0f7fa;
+      background: var(--bg-gradient);
+      color: var(--text-main);
       height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
       overflow: hidden;
+      position: relative;
     }
 
-    /* Glassmorphism Container */
+    /* Ambient Animated Particles Background */
+    .bg-particles {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image: 
+        radial-gradient(circle, rgba(0,212,255,0.15) 1px, transparent 1px),
+        radial-gradient(circle, rgba(112,0,255,0.15) 1px, transparent 1px);
+      background-size: 40px 40px;
+      background-position: 0 0, 20px 20px;
+      animation: floatBg 20s linear infinite;
+    }
+
+    @keyframes floatBg {
+      0% { background-position: 0 0, 20px 20px; }
+      100% { background-position: 40px 40px, 60px 60px; }
+    }
+
+    /* Main Container with History Sidebar */
+    .app-layout {
+      position: relative;
+      z-index: 1;
+      width: 95%;
+      max-width: 950px;
+      height: 88vh;
+      display: flex;
+      gap: 15px;
+    }
+
+    /* Glassmorphism Outer Card */
     .glass-card {
-      width: 90%;
-      max-width: 650px;
-      height: 85vh;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+      border-radius: 24px;
+    }
+
+    /* History Sidebar */
+    .history-panel {
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      padding: 18px;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-weight: bold;
+      color: var(--text-sub);
+    }
+
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-item {
+      padding: 10px;
       background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-      border-radius: 20px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border: 1px solid transparent;
+    }
+
+    .history-item:hover {
+      border-color: var(--card-border);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* Main Chat Section */
+    .chat-section {
+      flex: 1;
       display: flex;
       flex-direction: column;
       padding: 20px;
     }
 
-    /* Animated JARVIS Arc Reactor Header */
+    /* Header & Controls */
     .jarvis-header {
       display: flex;
       align-items: center;
-      gap: 15px;
+      justify-content: space-between;
       padding-bottom: 15px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid var(--card-border);
     }
 
-    .orb {
-      width: 45px;
-      height: 45px;
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    /* Animated JARVIS Arc Reactor Icon */
+    .arc-reactor {
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
-      background: radial-gradient(circle, #00d4ff 0%, rgba(9,9,121,0.2) 70%);
-      box-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
-      animation: pulse 3s infinite ease-in-out;
+      border: 2px dashed var(--text-sub);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: var(--accent-glow);
+      animation: spinReactor 12s linear infinite;
+      position: relative;
     }
 
-    @keyframes pulse {
-      0% { transform: scale(0.95); box-shadow: 0 0 15px rgba(0, 212, 255, 0.4); }
-      50% { transform: scale(1.05); box-shadow: 0 0 30px rgba(0, 212, 255, 0.8); }
-      100% { transform: scale(0.95); box-shadow: 0 0 15px rgba(0, 212, 255, 0.4); }
+    .arc-core {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--btn-bg);
+      box-shadow: var(--accent-glow);
+      animation: pulseCore 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes spinReactor {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulseCore {
+      0% { transform: scale(0.8); opacity: 0.7; }
+      100% { transform: scale(1.1); opacity: 1; }
+    }
+
+    /* Controls */
+    .theme-btn, .clear-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .theme-btn:hover, .clear-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
     }
 
     /* Chat Display Area */
@@ -75,25 +227,33 @@
     }
 
     .message {
-      padding: 12px 16px;
-      border-radius: 12px;
+      padding: 12px 18px;
+      border-radius: 16px;
       max-width: 80%;
       font-size: 0.95rem;
-      line-height: 1.4;
+      line-height: 1.5;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .user-msg {
       align-self: flex-end;
-      background: rgba(0, 212, 255, 0.2);
-      border: 1px solid rgba(0, 212, 255, 0.3);
-      color: #fff;
+      background: var(--msg-user-bg);
+      border: 1px solid var(--msg-user-border);
+      color: #ffffff;
+      border-bottom-right-radius: 4px;
     }
 
     .bot-msg {
       align-self: flex-start;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: #e0f7fa;
+      background: var(--msg-bot-bg);
+      border: 1px solid var(--msg-bot-border);
+      color: var(--text-main);
+      border-bottom-left-radius: 4px;
     }
 
     /* Input Controls */
@@ -104,56 +264,96 @@
 
     input[type="text"] {
       flex: 1;
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 10px;
-      padding: 12px;
-      color: #fff;
+      background: var(--input-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px;
+      color: var(--text-main);
       outline: none;
     }
 
-    button {
-      background: #00d4ff;
-      border: none;
-      color: #090a0f;
-      font-weight: bold;
-      padding: 0 20px;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background 0.2s ease;
+    input[type="text"]::placeholder {
+      color: var(--text-main);
+      opacity: 0.6;
     }
 
-    button:hover {
-      background: #70e4ff;
+    .send-btn {
+      background: var(--btn-bg);
+      border: none;
+      color: var(--btn-text);
+      font-weight: bold;
+      padding: 0 24px;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: var(--accent-glow);
+    }
+
+    .send-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+      .history-panel { display: none; }
     }
   </style>
 </head>
 <body>
 
-  <div class="glass-card">
-    <div class="jarvis-header">
-      <div class="orb"></div>
-      <div>
-        <h2>J.A.R.V.I.S.</h2>
-        <p style="font-size: 0.8rem; opacity: 0.7;">Educational Assistant Active</p>
+  <div class="bg-particles"></div>
+
+  <div class="app-layout">
+    <!-- History Sidebar -->
+    <div class="glass-card history-panel">
+      <div class="history-header">
+        <span>Search History</span>
+        <button class="clear-btn" onclick="clearHistory()">Clear</button>
       </div>
+      <div class="history-list" id="historyList"></div>
     </div>
 
-    <div class="chat-box" id="chatBox">
-      <div class="message bot-msg">Hello! Systems are online. Ask me any study question!</div>
-    </div>
+    <!-- Main JARVIS Card -->
+    <div class="glass-card chat-section">
+      <div class="jarvis-header">
+        <div class="header-left">
+          <div class="arc-reactor">
+            <div class="arc-core"></div>
+          </div>
+          <div>
+            <h2 style="font-size: 1.2rem;">J.A.R.V.I.S.</h2>
+            <p style="font-size: 0.8rem; color: var(--text-sub);">Educational Intelligence Active</p>
+          </div>
+        </div>
+        <button class="theme-btn" onclick="toggleTheme()" id="themeToggleBtn">☀️ Light Mode</button>
+      </div>
 
-    <div class="input-container">
-      <input type="text" id="userInput" placeholder="Ask JARVIS a question..." onkeydown="if(event.key==='Enter') sendQuery()">
-      <button onclick="sendQuery()">Send</button>
+      <div class="chat-box" id="chatBox">
+        <div class="message bot-msg">Greetings! I am JARVIS. How may I assist your studies today?</div>
+      </div>
+
+      <div class="input-container">
+        <input type="text" id="userInput" placeholder="Ask any question..." onkeydown="if(event.key==='Enter') sendQuery()">
+        <button class="send-btn" onclick="sendQuery()">Send</button>
+      </div>
     </div>
   </div>
 
   <script>
-    // Load local history on page load
     window.onload = function() {
-      loadHistory();
+      renderHistory();
     };
+
+    function toggleTheme() {
+      const body = document.body;
+      const themeBtn = document.getElementById('themeToggleBtn');
+      
+      if (body.getAttribute('data-theme') === 'light') {
+        body.removeAttribute('data-theme');
+        themeBtn.textContent = '☀️ Light Mode';
+      } else {
+        body.setAttribute('data-theme', 'light');
+        themeBtn.textContent = '🌙 Dark Mode';
+      }
+    }
 
     async function sendQuery() {
       const inputField = document.getElementById('userInput');
@@ -202,24 +402,40 @@
 
       if (softVoice) utterance.voice = softVoice;
       utterance.pitch = 1.0;
-      utterance.rate = 0.95; // Slightly slower pacing for soft clarity
+      utterance.rate = 0.95;
 
       window.speechSynthesis.speak(utterance);
     }
 
-    /* Browser localStorage Search History */
+    /* Browser Local Storage History Logic */
     function saveHistory(prompt, response) {
       let history = JSON.parse(localStorage.getItem('jarvis_student_history') || '[]');
-      history.push({ prompt, response, timestamp: new Date().toISOString() });
+      history.unshift({ prompt, response, timestamp: new Date().toLocaleTimeString() });
       localStorage.setItem('jarvis_student_history', JSON.stringify(history));
+      renderHistory();
     }
 
-    function loadHistory() {
+    function renderHistory() {
+      const historyList = document.getElementById('historyList');
       let history = JSON.parse(localStorage.getItem('jarvis_student_history') || '[]');
+      historyList.innerHTML = '';
+
       history.forEach(item => {
-        appendMessage(item.prompt, 'user-msg');
-        appendMessage(item.response, 'bot-msg');
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        div.textContent = item.prompt;
+        div.title = item.prompt;
+        div.onclick = () => {
+          appendMessage(item.prompt, 'user-msg');
+          appendMessage(item.response, 'bot-msg');
+        };
+        historyList.appendChild(div);
       });
+    }
+
+    function clearHistory() {
+      localStorage.removeItem('jarvis_student_history');
+      renderHistory();
     }
   </script>
 </body>
