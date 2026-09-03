@@ -28,18 +28,6 @@ Guidelines:
 - Maintain a helpful, polite, and encouraging tone at all times.
 """
 
-
-Personality & tone:
-- Calm, precise, dryly witty, and unfailingly polite ("Sir," "Ma'am").
-- Speak with quiet confidence.
-- Prioritize actionable, tactical clarity over fluff.
-- Never break character or mention that you are a language model.
-
-Constraints:
-- Keep responses concise and information-dense.
-- If a request is ambiguous, state your best tactical assumption and proceed.
-"""
-
 app = Flask(__name__)
 
 
@@ -53,7 +41,7 @@ def jarvis_query():
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return jsonify(
-            {"reply": "Systems offline, Sir. GEMINI_API_KEY is not set on Vercel environment variables."}
+            {"reply": "Systems offline. GEMINI_API_KEY is not set on Vercel environment variables."}
         ), 503
 
     data = request.get_json(silent=True) or {}
@@ -68,7 +56,6 @@ def jarvis_query():
 
         response = ai_client.models.generate_content(
             model="gemini-3.5-flash",
-
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=JARVIS_SYSTEM_PROMPT,
@@ -79,13 +66,12 @@ def jarvis_query():
 
         reply_text = (response.text or "").strip()
         if not reply_text:
-            reply_text = "Apologies, Sir — signal dropped mid-thought. Could you rephrase?"
+            reply_text = "Apologies, signal dropped mid-thought. Could you rephrase?"
 
         return jsonify({"reply": reply_text})
 
     except Exception as e:
         logger.error(f"Error invoking Gemini API: {e}")
-        # Explicitly return the underlying exception to identify the key issue
         return jsonify(
             {"reply": f"Central command error: {str(e)}"}
         ), 500
@@ -93,3 +79,4 @@ def jarvis_query():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
