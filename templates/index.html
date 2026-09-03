@@ -55,7 +55,7 @@
       color: var(--text-main);
     }
 
-    /* Floating Overlay */
+    /* Infinite Animated Background Orbs */
     .overlay-container {
       position: fixed;
       inset: 0;
@@ -68,38 +68,42 @@
       position: absolute;
       width: 280px;
       height: 280px;
+      top: 10%;
+      left: 10%;
       border-radius: 50%;
       border: 2px dashed var(--text-sub);
       opacity: 0.25;
-      will-change: transform;
-      animation: floatOrbit1 20s ease-in-out infinite alternate, spinCW 30s linear infinite;
+      animation: infiniteOrbit1 25s ease-in-out infinite;
     }
 
     .fg-jarvis-orb-2 {
       position: absolute;
-      width: 180px;
-      height: 180px;
+      width: 200px;
+      height: 200px;
+      bottom: 15%;
+      right: 10%;
       border-radius: 50%;
       border: 2px dotted rgba(112, 0, 255, 0.7);
       opacity: 0.3;
-      will-change: transform;
-      animation: floatOrbit2 15s ease-in-out infinite alternate, spinCCW 20s linear infinite;
+      animation: infiniteOrbit2 20s ease-in-out infinite;
     }
 
-    @keyframes floatOrbit1 {
-      0% { transform: translate3d(-10vw, -10vh, 0) scale(0.9); }
-      50% { transform: translate3d(50vw, 35vh, 0) scale(1.1); }
-      100% { transform: translate3d(15vw, 65vh, 0) scale(0.85); }
+    /* Continuous 360-degree looping motion */
+    @keyframes infiniteOrbit1 {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(35vw, 20vh) rotate(90deg); }
+      50% { transform: translate(20vw, 50vh) rotate(180deg); }
+      75% { transform: translate(-10vw, 30vh) rotate(270deg); }
+      100% { transform: translate(0, 0) rotate(360deg); }
     }
 
-    @keyframes floatOrbit2 {
-      0% { transform: translate3d(65vw, 10vh, 0) scale(1.1); }
-      50% { transform: translate3d(10vw, 45vh, 0) scale(0.8); }
-      100% { transform: translate3d(55vw, 75vh, 0) scale(1.2); }
+    @keyframes infiniteOrbit2 {
+      0% { transform: translate(0, 0) rotate(360deg); }
+      25% { transform: translate(-30vw, -20vh) rotate(270deg); }
+      50% { transform: translate(-15vw, -40vh) rotate(180deg); }
+      75% { transform: translate(15vw, -20vh) rotate(90deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
     }
-
-    @keyframes spinCW { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    @keyframes spinCCW { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
 
     /* Main Flex Layout */
     .app-layout {
@@ -231,7 +235,7 @@
 
     .controls { display: flex; gap: 8px; }
 
-    .theme-btn, .clear-btn, .mobile-history-btn {
+    .theme-btn, .voice-btn, .clear-btn, .mobile-history-btn {
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid var(--card-border);
       color: var(--text-main);
@@ -353,6 +357,7 @@
           </div>
         </div>
         <div class="controls">
+          <button class="voice-btn" onclick="toggleVoice()" id="voiceToggleBtn">🔊 Voice ON</button>
           <button class="mobile-history-btn" onclick="toggleMobileHistory()">📜 Chats</button>
           <button class="theme-btn" onclick="toggleTheme()" id="themeToggleBtn">☀️ Light</button>
         </div>
@@ -369,6 +374,14 @@
 
   <script>
     let currentSessionId = null;
+    let voiceEnabled = true;
+
+    // Load available voices into the browser engine immediately
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
 
     window.onload = function() {
       let sessions = getSessions();
@@ -378,6 +391,19 @@
         loadSession(sessions[0].id);
       }
     };
+
+    function toggleVoice() {
+      voiceEnabled = !voiceEnabled;
+      const voiceBtn = document.getElementById('voiceToggleBtn');
+      if (voiceEnabled) {
+        voiceBtn.textContent = '🔊 Voice ON';
+        voiceBtn.style.opacity = '1';
+      } else {
+        voiceBtn.textContent = 'Mute Voice';
+        voiceBtn.style.opacity = '0.6';
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      }
+    }
 
     function toggleMobileHistory() {
       document.getElementById('historyPanel').classList.toggle('active');
@@ -525,18 +551,31 @@
       startNewChat();
     }
 
-    /* Voice Speech Synthesis Function */
+    /* Enhanced Soft & Clear Voice Engine */
     function speak(text) {
-      if (!('speechSynthesis' in window)) return;
+      if (!voiceEnabled || !('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(text);
       const voices = window.speechSynthesis.getVoices();
-      const softVoice = voices.find(v => v.lang.includes('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha'))) || voices[0];
 
-      if (softVoice) utterance.voice = softVoice;
-      utterance.pitch = 1.0;
-      utterance.rate = 0.95;
+      // Priority list targeting soft, natural, high-clarity voice profiles
+      const smoothVoice = voices.find(v => 
+        v.lang.startsWith('en') && (
+          v.name.includes('Natural') || 
+          v.name.includes('Online') || 
+          v.name.includes('Google') || 
+          v.name.includes('Samantha') ||
+          v.name.includes('Karen') ||
+          v.name.includes('Daniel')
+        )
+      ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+
+      if (smoothVoice) utterance.voice = smoothVoice;
+      
+      // Pitch & rate adjustments tuned for smooth, calm delivery
+      utterance.pitch = 0.95;
+      utterance.rate = 0.90;
 
       window.speechSynthesis.speak(utterance);
     }
