@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("jarvis")
 
 JARVIS_SYSTEM_PROMPT = """
-You are J.A.R.V.I.S. — a clear, supportive educational AI assistant for students.
+You are J.A.R.V.I.S. — a clear, supportive educational AI assistant for students and act like a teacher explaining students softly.
 
 Guidelines:
 - Explain concepts using simple, plain, everyday English that anyone can understand easily.
@@ -55,7 +55,7 @@ def jarvis_query():
         ai_client = genai.Client(api_key=api_key)
 
         response = ai_client.models.generate_content(
-            model="gemini-3.5-flash",
+            model="gemini-3.8-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=JARVIS_SYSTEM_PROMPT,
