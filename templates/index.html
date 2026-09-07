@@ -609,29 +609,54 @@
       startNewChat();
     }
 
+    /* Clean raw Markdown symbols & dots so TTS speaks naturally */
+    function cleanTextForSpeech(text) {
+      return text
+        .replace(/J\.A\.R\.V\.I\.S\.?/gi, "Jarvis")
+        .replace(/\*+/g, "")
+        .replace(/#+|-+|---+/g, "")
+        .replace(/[`~_]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    /* Enhanced Deep Male Voice TTS Function */
     function speak(text) {
       if (!voiceEnabled || !('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
 
-      const utterance = new SpeechSynthesisUtterance(text);
+      const cleanedText = cleanTextForSpeech(text);
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
       const voices = window.speechSynthesis.getVoices();
 
-      const softVoice = voices.find(v => 
+      // Search specifically for male speech synthesis profiles
+      const maleVoice = voices.find(v => 
         v.lang.startsWith('en') && (
-          v.name.includes('Natural') || 
-          v.name.includes('Online') || 
-          v.name.includes('Google') || 
-          v.name.includes('Samantha') ||
-          v.name.includes('Karen') ||
-          v.name.includes('Daniel')
+          v.name.includes('David') || 
+          v.name.includes('George') || 
+          v.name.includes('Mark') || 
+          v.name.includes('Google UK English Male') || 
+          v.name.includes('Daniel') || 
+          v.name.includes('Guy') ||
+          v.name.includes('Male')
         )
       ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
 
-      if (softVoice) utterance.voice = softVoice;
-      utterance.pitch = 0.95;
-      utterance.rate = 0.90;
+      if (maleVoice) utterance.voice = maleVoice;
+
+      // Pitch below 1.0 deepens the tone for a JARVIS-style male voice
+      utterance.pitch = 0.82;
+      utterance.rate = 0.92;
+      utterance.volume = 1.0;
 
       window.speechSynthesis.speak(utterance);
+    }
+
+    // Pre-load voices asynchronously when page loads
+    if (typeof speechSynthesis !== 'undefined') {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
     }
   </script>
 </body>
