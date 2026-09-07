@@ -30,8 +30,8 @@ Guidelines:
 """
 
 # Valid production Gemini models
-PRIMARY_MODEL = "gemini-2.5-flash"
-FALLBACK_MODELS = ["gemini-1.5-flash"]
+PRIMARY_MODEL = "gemini-3.8-flash"
+FALLBACK_MODELS = ["gemini-3.5-flash"]
 
 app = Flask(__name__)
 
