@@ -13,7 +13,6 @@ from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from google.genai.errors import APIError
 
 load_dotenv()
 
@@ -30,17 +29,17 @@ Guidelines:
 - Maintain a helpful, polite, and encouraging tone at all times.
 """
 
-# Fallback models in case primary model hits temporary server overload (503)
+# Primary model with robust fallbacks
 PRIMARY_MODEL = "gemini-3.8-flash"
-FALLBACK_MODELS = ["gemini-2.5-flash"]
+FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-1.5-flash"]
 
 app = Flask(__name__)
 
 
 def generate_content_with_retry(ai_client, prompt):
     """
-    Tries the primary model with exponential retries on 503 errors.
-    If high demand persists, falls back to backup models automatically.
+    Tries the primary model with exponential retries on server errors.
+    If unavailable, seamlessly falls back to secondary models.
     """
     models_to_try = [PRIMARY_MODEL] + FALLBACK_MODELS
 
@@ -51,32 +50,24 @@ def generate_content_with_retry(ai_client, prompt):
     )
 
     for model_name in models_to_try:
-        # Retry up to 3 times per model for temporary 503 high demand
-        for attempt in range(3):
+        # Try up to 2 attempts per model
+        for attempt in range(2):
             try:
-                logger.info(f"Invoking {model_name} (Attempt {attempt + 1})...")
+                logger.info(f"Invoking model: {model_name} (Attempt {attempt + 1})...")
                 response = ai_client.models.generate_content(
                     model=model_name,
                     contents=prompt,
                     config=config,
                 )
-                return (response.text or "").strip()
-
-            except APIError as e:
-                # Catch 503 (Server Overload / High Demand) specifically
-                if getattr(e, "code", None) == 503 or "503" in str(e):
-                    wait_time = 2 ** attempt  # 1s, 2s, 4s backoff
-                    logger.warning(
-                        f"503 High Demand on {model_name}. Retrying in {wait_time}s..."
-                    )
-                    time.sleep(wait_time)
-                else:
-                    logger.error(f"API Error on {model_name}: {e}")
-                    break  # Switch to next fallback model immediately
+                
+                # Verify we got text back
+                if response and response.text:
+                    return response.text.strip()
 
             except Exception as e:
-                logger.error(f"Unexpected error on {model_name}: {e}")
-                break  # Switch to next fallback model on unexpected failure
+                # Log exact error details to Vercel/Flask logs for debugging
+                logger.warning(f"Model {model_name} failed on attempt {attempt + 1}: {str(e)}")
+                time.sleep(1)  # Brief pause before retrying or switching models
 
     return None
 
