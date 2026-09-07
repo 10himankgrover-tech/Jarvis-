@@ -7,11 +7,13 @@ client. All requests are relayed server-side.
 """
 
 import os
+import time
 import logging
 from flask import Flask, request, jsonify, render_template
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from google.genai.errors import APIError
 
 load_dotenv()
 
@@ -28,7 +30,55 @@ Guidelines:
 - Maintain a helpful, polite, and encouraging tone at all times.
 """
 
+# Fallback models in case primary model hits temporary server overload (503)
+PRIMARY_MODEL = "gemini-3.8-flash"
+FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-1.5-flash"]
+
 app = Flask(__name__)
+
+
+def generate_content_with_retry(ai_client, prompt):
+    """
+    Tries the primary model with exponential retries on 503 errors.
+    If high demand persists, falls back to backup models automatically.
+    """
+    models_to_try = [PRIMARY_MODEL] + FALLBACK_MODELS
+
+    config = types.GenerateContentConfig(
+        system_instruction=JARVIS_SYSTEM_PROMPT,
+        max_output_tokens=8192,
+        temperature=0.7,
+    )
+
+    for model_name in models_to_try:
+        # Retry up to 3 times per model for temporary 503 high demand
+        for attempt in range(3):
+            try:
+                logger.info(f"Invoking {model_name} (Attempt {attempt + 1})...")
+                response = ai_client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=config,
+                )
+                return (response.text or "").strip()
+
+            except APIError as e:
+                # Catch 503 (Server Overload / High Demand) specifically
+                if getattr(e, "code", None) == 503 or "503" in str(e):
+                    wait_time = 2 ** attempt  # 1s, 2s, 4s backoff
+                    logger.warning(
+                        f"503 High Demand on {model_name}. Retrying in {wait_time}s..."
+                    )
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"API Error on {model_name}: {e}")
+                    break  # Switch to next fallback model immediately
+
+            except Exception as e:
+                logger.error(f"Unexpected error on {model_name}: {e}")
+                break  # Switch to next fallback model on unexpected failure
+
+    return None
 
 
 @app.route("/")
@@ -54,24 +104,17 @@ def jarvis_query():
         # Initialize client inside request scope for serverless compatibility
         ai_client = genai.Client(api_key=api_key)
 
-        response = ai_client.models.generate_content(
-            model="gemini-3.8-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=JARVIS_SYSTEM_PROMPT,
-                max_output_tokens=8192,
-                temperature=0.7,
-            ),
-        )
+        reply_text = generate_content_with_retry(ai_client, prompt)
 
-        reply_text = (response.text or "").strip()
         if not reply_text:
-            reply_text = "Apologies, signal dropped mid-thought. Could you rephrase?"
+            return jsonify(
+                {"reply": "Central command servers are currently experiencing high demand. Please try again in a few moments."}
+            ), 503
 
         return jsonify({"reply": reply_text})
 
     except Exception as e:
-        logger.error(f"Error invoking Gemini API: {e}")
+        logger.error(f"Error executing request: {e}")
         return jsonify(
             {"reply": f"Central command error: {str(e)}"}
         ), 500
@@ -79,4 +122,3 @@ def jarvis_query():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-
