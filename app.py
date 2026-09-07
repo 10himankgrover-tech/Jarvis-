@@ -32,7 +32,7 @@ Guidelines:
 
 # Fallback models in case primary model hits temporary server overload (503)
 PRIMARY_MODEL = "gemini-3.8-flash"
-FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-1.5-flash"]
+FALLBACK_MODELS = ["gemini-2.5-flash"]
 
 app = Flask(__name__)
 
