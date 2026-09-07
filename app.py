@@ -1,8 +1,8 @@
 """
 J.A.R.V.I.S. Backend Bridge
 ----------------------------------
-A secure Flask proxy that sits between the browser-based JARVIS UI and
-Google's Gemini API. The API key is NEVER sent to, or exposed in, the
+A secure Flask proxy that sits between the browser-based JARVIS UI / Pi client
+and Google's Gemini API. The API key is NEVER sent to, or exposed in, the
 client. All requests are relayed server-side.
 """
 
@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("jarvis")
 
 JARVIS_SYSTEM_PROMPT = """
-You are J.A.R.V.I.S. — a clear, supportive educational AI assistant for students and act like a teacher explaining students softly.
+You are J.A.R.V.I.S. — a clear, supportive educational AI assistant for students who acts like a wise, soft-spoken male tutor explaining concepts to students gently.
 
 Guidelines:
 - Explain concepts using simple, plain, everyday English that anyone can understand easily.
@@ -29,17 +29,17 @@ Guidelines:
 - Maintain a helpful, polite, and encouraging tone at all times.
 """
 
-# Primary model with robust fallbacks
-PRIMARY_MODEL = "gemini-3.8-flash"
-FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-1.5-flash"]
+# Valid production Gemini models
+PRIMARY_MODEL = "gemini-2.5-flash"
+FALLBACK_MODELS = ["gemini-1.5-flash"]
 
 app = Flask(__name__)
 
 
 def generate_content_with_retry(ai_client, prompt):
     """
-    Tries the primary model with exponential retries on server errors.
-    If unavailable, seamlessly falls back to secondary models.
+    Tries the primary model first. If it encounters high demand (503) or an error,
+    it falls back quickly to secondary models to stay within Vercel's timeout.
     """
     models_to_try = [PRIMARY_MODEL] + FALLBACK_MODELS
 
@@ -50,24 +50,21 @@ def generate_content_with_retry(ai_client, prompt):
     )
 
     for model_name in models_to_try:
-        # Try up to 2 attempts per model
-        for attempt in range(2):
-            try:
-                logger.info(f"Invoking model: {model_name} (Attempt {attempt + 1})...")
-                response = ai_client.models.generate_content(
-                    model=model_name,
-                    contents=prompt,
-                    config=config,
-                )
-                
-                # Verify we got text back
-                if response and response.text:
-                    return response.text.strip()
+        try:
+            logger.info(f"Invoking model: {model_name}...")
+            response = ai_client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=config,
+            )
+            
+            # Verify valid response text
+            if response and response.text:
+                return response.text.strip()
 
-            except Exception as e:
-                # Log exact error details to Vercel/Flask logs for debugging
-                logger.warning(f"Model {model_name} failed on attempt {attempt + 1}: {str(e)}")
-                time.sleep(1)  # Brief pause before retrying or switching models
+        except Exception as e:
+            logger.warning(f"Model {model_name} failed: {str(e)}")
+            time.sleep(0.5)  # Brief pause before switching models
 
     return None
 
