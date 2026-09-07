@@ -27,6 +27,8 @@ Guidelines:
 - Avoid complex technical jargon, overly formal terms, or unnecessary fluff.
 - Keep answers direct, structured, and easy to follow.
 - Maintain a helpful, polite, and encouraging tone at all times.
+- Do NOT use Markdown symbols like asterisks (**), hashes (###), or dashes (---) in your text output. Write in plain conversational text paragraphs.
+- Always write your name as "Jarvis" without dots or periods.
 """
 
 # Valid production Gemini models
