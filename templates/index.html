@@ -620,32 +620,37 @@
         .trim();
     }
 
-    /* Enhanced Deep Male Voice TTS Function */
-        function speak(text) {
+    /* Deep Male Voice TTS Function */
+    function speak(text) {
       if (!voiceEnabled || !('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
 
-      const utterance = new SpeechSynthesisUtterance(text);
+      const cleanedText = cleanTextForSpeech(text);
+      const utterance = new SpeechSynthesisUtterance(cleanedText);
       const voices = window.speechSynthesis.getVoices();
 
-      const softVoice = voices.find(v => 
+      // Search specifically for male voice engines
+      const maleVoice = voices.find(v => 
         v.lang.startsWith('en') && (
-          v.name.includes('Natural') || 
-          v.name.includes('Online') || 
-          v.name.includes('Google') || 
-          v.name.includes('Samantha') ||
-          v.name.includes('Karen') ||
-          v.name.includes('Daniel')
+          v.name.includes('David') || 
+          v.name.includes('George') || 
+          v.name.includes('Guy') || 
+          v.name.includes('Mark') || 
+          v.name.includes('Alex') || 
+          v.name.includes('Daniel') ||
+          v.name.includes('Google UK English Male') ||
+          v.name.includes('Male')
         )
       ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
 
-      if (softVoice) utterance.voice = softVoice;
-      utterance.pitch = 0.95;
-      utterance.rate = 0.90;
+      if (maleVoice) utterance.voice = maleVoice;
+      
+      // Pitch and rate adjusted for a deeper, natural J.A.R.V.I.S. cadence
+      utterance.pitch = 0.75; 
+      utterance.rate = 0.95; 
 
       window.speechSynthesis.speak(utterance);
     }
-
 
     // Pre-load voices asynchronously when page loads
     if (typeof speechSynthesis !== 'undefined') {
