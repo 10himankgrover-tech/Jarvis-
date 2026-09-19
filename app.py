@@ -7,7 +7,9 @@ and Google's Gemini API. Features automated colorful PDF note generation.
 
 import os
 import time
+import base64
 import logging
+from io import BytesIO
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from dotenv import load_dotenv
 from google import genai
@@ -15,7 +17,8 @@ from google.genai import types
 
 # ReportLab imports for PDF generation
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.platypus.flowables import HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
@@ -36,17 +39,17 @@ Guidelines:
 """
 
 # Production Gemini models
-PRIMARY_MODEL = "gemini-3.8-flash"
-FALLBACK_MODELS = ["gemini-3.5-flash"]
+PRIMARY_MODEL = "gemini-2.5-flash"
+FALLBACK_MODELS = ["gemini-1.5-flash"]
 
 app = Flask(__name__)
 
 
-def generate_colorful_pdf(title, raw_text, filename="static/notes.pdf"):
-    """Generates a styled, colorful PDF document using ReportLab."""
-    os.makedirs("static", exist_ok=True)
+def generate_colorful_pdf_base64(title, raw_text):
+    """Generates a styled, colorful PDF document in-memory as a Base64 string."""
+    pdf_buffer = BytesIO()
     doc = SimpleDocTemplate(
-        filename,
+        pdf_buffer,
         pagesize=letter,
         rightMargin=40, leftMargin=40,
         topMargin=40, bottomMargin=40
@@ -62,7 +65,7 @@ def generate_colorful_pdf(title, raw_text, filename="static/notes.pdf"):
         textColor=colors.HexColor('#1E3A8A'), # Royal Blue
         spaceAfter=10
     )
-    
+
     body_style = ParagraphStyle(
         'BodyContent',
         parent=styles['Normal'],
@@ -78,16 +81,25 @@ def generate_colorful_pdf(title, raw_text, filename="static/notes.pdf"):
         HRFlowable(width="100%", thickness=2, color=colors.HexColor('#2563EB'), spaceAfter=15)
     ]
 
-    # Convert basic markdown formatting into ReportLab HTML tags
+    # Convert markdown formatting into ReportLab compatible HTML tags
     paragraphs = raw_text.split('\n\n')
     for p in paragraphs:
         if p.strip():
-            formatted = p.replace('**', '<b>').replace('**', '</b>')
+            formatted = p.strip()
+            # Alternating ** to <b> and </b>
+            formatted = formatted.replace('**', '<b>', 1)
+            while '**' in formatted:
+                formatted = formatted.replace('**', '</b>', 1)
+            formatted = formatted.replace('###', '')
+
             story.append(Paragraph(formatted, body_style))
             story.append(Spacer(1, 4))
 
     doc.build(story)
-    return filename
+    pdf_buffer.seek(0)
+
+    base64_pdf = base64.b64encode(pdf_buffer.getvalue()).decode('utf-8')
+    return f"data:application/pdf;base64,{base64_pdf}"
 
 
 def generate_content_with_retry(ai_client, prompt, custom_system_prompt=None):
@@ -157,12 +169,12 @@ def jarvis_query():
             if not notes_content:
                 return jsonify({"reply": "Unable to generate notes right now due to server load."}), 503
 
-            pdf_path = generate_colorful_pdf("Jarvis Smart Revision Notes", notes_content)
+            pdf_data_url = generate_colorful_pdf_base64("Jarvis Smart Revision Notes", notes_content)
             reply_text = "I have compiled your revision notes and generated a styled PDF document."
 
             return jsonify({
                 "reply": reply_text,
-                "pdf_url": "/" + pdf_path
+                "pdf_url": pdf_data_url
             })
 
         else:
