@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>JARVIS — Educational AI Assistant</title>
-  
+
   <style>
     :root {
       --bg-gradient: radial-gradient(circle at 50% 20%, #100626 0%, #04060a 100%);
@@ -276,6 +276,25 @@
       border-bottom-left-radius: 4px;
     }
 
+    /* PDF Download Button Styling */
+    .pdf-download-btn {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 10px 16px;
+      background: var(--btn-bg);
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 0.88rem;
+      box-shadow: var(--accent-glow);
+      transition: transform 0.2s ease;
+    }
+
+    .pdf-download-btn:active {
+      transform: scale(0.96);
+    }
+
     .input-container {
       display: flex;
       gap: 8px;
@@ -515,7 +534,7 @@
 
       if (session) {
         session.messages.forEach(msg => {
-          appendMessageUI(msg.text, msg.sender === 'user' ? 'user-msg' : 'bot-msg');
+          appendMessageUI(msg.text, msg.sender === 'user' ? 'user-msg' : 'bot-msg', msg.pdfUrl);
         });
       }
       renderHistoryList();
@@ -549,8 +568,10 @@
         }
 
         const reply = data.reply || data.error || "Systems standard response.";
-        appendMessageUI(reply, 'bot-msg');
-        saveMessageToSession(reply, 'bot');
+        const pdfUrl = data.pdf_url || null;
+
+        appendMessageUI(reply, 'bot-msg', pdfUrl);
+        saveMessageToSession(reply, 'bot', pdfUrl);
         speak(reply);
 
       } catch (err) {
@@ -560,11 +581,24 @@
       }
     }
 
-    function appendMessageUI(text, className) {
+    function appendMessageUI(text, className, pdfUrl = null) {
       const chatBox = document.getElementById('chatBox');
       const msgDiv = document.createElement('div');
       msgDiv.className = `message ${className}`;
-      msgDiv.textContent = text;
+      
+      let content = document.createElement('div');
+      content.textContent = text;
+      msgDiv.appendChild(content);
+
+      if (pdfUrl) {
+        const downloadLink = document.createElement('a');
+        downloadLink.href = `${pdfUrl}?t=${new Date().getTime()}`;
+        downloadLink.download = "JARVIS_Notes.pdf";
+        downloadLink.className = "pdf-download-btn";
+        downloadLink.textContent = "📄 Download Colorful PDF Notes";
+        msgDiv.appendChild(downloadLink);
+      }
+
       chatBox.appendChild(msgDiv);
 
       setTimeout(() => {
@@ -572,14 +606,14 @@
       }, 50);
     }
 
-    function saveMessageToSession(text, sender) {
+    function saveMessageToSession(text, sender, pdfUrl = null) {
       let sessions = getSessions();
       let session = sessions.find(s => s.id === currentSessionId);
       if (session) {
         if (session.title === 'New Conversation' && sender === 'user') {
           session.title = text.length > 28 ? text.substring(0, 28) + '...' : text;
         }
-        session.messages.push({ sender, text });
+        session.messages.push({ sender, text, pdfUrl });
         saveSessions(sessions);
       }
     }
@@ -644,7 +678,7 @@
       ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
 
       if (maleVoice) utterance.voice = maleVoice;
-      
+
       // Pitch and rate adjusted for a deeper, natural J.A.R.V.I.S. cadence
       utterance.pitch = 0.75; 
       utterance.rate = 0.95; 
