@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>JARVIS — Educational AI Assistant</title>
 
+  <!-- PDF engine (runs in the browser, free, no server load) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
   <style>
     :root {
       --bg-gradient: radial-gradient(circle at 50% 20%, #100626 0%, #04060a 100%);
@@ -237,6 +240,20 @@
       font-size: 0.78rem;
     }
 
+    /* PDF color theme picker */
+    .pdf-theme-select {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 6px 10px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      outline: none;
+    }
+
+    .pdf-theme-select option { color: #1e1e2f; }
+
     .mobile-history-btn { display: none; }
 
     .chat-box {
@@ -276,24 +293,24 @@
       border-bottom-left-radius: 4px;
     }
 
-    /* PDF Download Button Styling */
-    .pdf-download-btn {
+    /* Make PDF button under each Jarvis answer */
+    .pdf-btn {
       display: inline-block;
-      margin-top: 8px;
-      padding: 10px 16px;
+      margin-top: 10px;
+      padding: 9px 14px;
       background: var(--btn-bg);
       color: #ffffff;
-      text-decoration: none;
+      border: none;
       border-radius: 8px;
       font-weight: bold;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
+      cursor: pointer;
       box-shadow: var(--accent-glow);
       transition: transform 0.2s ease;
     }
 
-    .pdf-download-btn:active {
-      transform: scale(0.96);
-    }
+    .pdf-btn:active { transform: scale(0.96); }
+    .pdf-btn:disabled { opacity: 0.7; cursor: wait; }
 
     .input-container {
       display: flex;
@@ -394,6 +411,12 @@
           </div>
         </div>
         <div class="controls">
+          <select class="pdf-theme-select" id="pdfThemeSelect" onchange="setPdfTheme(this.value)" title="Colors for your PDF notes">
+            <option value="ocean">🎨 Ocean</option>
+            <option value="sunset">🎨 Sunset</option>
+            <option value="forest">🎨 Forest</option>
+            <option value="grape">🎨 Grape</option>
+          </select>
           <button class="voice-btn" onclick="toggleVoice()" id="voiceToggleBtn">🔊 Voice ON</button>
           <button class="mobile-history-btn" onclick="toggleMobileHistory()">📜 Chats</button>
           <button class="theme-btn" onclick="toggleTheme()" id="themeToggleBtn">☀️ Light</button>
@@ -463,6 +486,8 @@
     }
 
     window.onload = function() {
+      document.getElementById('pdfThemeSelect').value = getPdfThemeKey();
+
       let sessions = getSessions();
       if (sessions.length === 0) {
         startNewChat();
@@ -533,8 +558,18 @@
       chatBox.innerHTML = '';
 
       if (session) {
-        session.messages.forEach(msg => {
-          appendMessageUI(msg.text, msg.sender === 'user' ? 'user-msg' : 'bot-msg', msg.pdfUrl);
+        session.messages.forEach((msg, i) => {
+          if (msg.sender === 'user') {
+            appendMessageUI(msg.text, 'user-msg');
+            return;
+          }
+          const prev = session.messages[i - 1];
+          // Older saved answers have no flag: treat long replies as real answers
+          const canPdf = msg.canPdf !== undefined ? msg.canPdf : (i > 0 && msg.text.length > 150);
+          appendMessageUI(msg.text, 'bot-msg', {
+            canPdf: canPdf,
+            topic: prev && prev.sender === 'user' ? prev.text : ''
+          });
         });
       }
       renderHistoryList();
@@ -568,10 +603,10 @@
         }
 
         const reply = data.reply || data.error || "Systems standard response.";
-        const pdfUrl = data.pdf_url || null;
+        const isRealAnswer = response.ok;
 
-        appendMessageUI(reply, 'bot-msg', pdfUrl);
-        saveMessageToSession(reply, 'bot', pdfUrl);
+        appendMessageUI(reply, 'bot-msg', { canPdf: isRealAnswer, topic: text });
+        saveMessageToSession(reply, 'bot', isRealAnswer);
         speak(reply);
 
       } catch (err) {
@@ -581,22 +616,21 @@
       }
     }
 
-    function appendMessageUI(text, className, pdfUrl = null) {
+    function appendMessageUI(text, className, opts = {}) {
       const chatBox = document.getElementById('chatBox');
       const msgDiv = document.createElement('div');
       msgDiv.className = `message ${className}`;
-      
+
       let content = document.createElement('div');
       content.textContent = text;
       msgDiv.appendChild(content);
 
-      if (pdfUrl) {
-        const downloadLink = document.createElement('a');
-        downloadLink.href = `${pdfUrl}?t=${new Date().getTime()}`;
-        downloadLink.download = "JARVIS_Notes.pdf";
-        downloadLink.className = "pdf-download-btn";
-        downloadLink.textContent = "📄 Download Colorful PDF Notes";
-        msgDiv.appendChild(downloadLink);
+      if (opts.canPdf) {
+        const pdfBtn = document.createElement('button');
+        pdfBtn.className = 'pdf-btn';
+        pdfBtn.textContent = '📄 Make colorful PDF';
+        pdfBtn.onclick = () => makePdf(pdfBtn, opts.topic || '', text);
+        msgDiv.appendChild(pdfBtn);
       }
 
       chatBox.appendChild(msgDiv);
@@ -606,14 +640,14 @@
       }, 50);
     }
 
-    function saveMessageToSession(text, sender, pdfUrl = null) {
+    function saveMessageToSession(text, sender, canPdf) {
       let sessions = getSessions();
       let session = sessions.find(s => s.id === currentSessionId);
       if (session) {
         if (session.title === 'New Conversation' && sender === 'user') {
           session.title = text.length > 28 ? text.substring(0, 28) + '...' : text;
         }
-        session.messages.push({ sender, text, pdfUrl });
+        session.messages.push({ sender, text, canPdf });
         saveSessions(sessions);
       }
     }
@@ -643,55 +677,9 @@
       startNewChat();
     }
 
-    /* Clean raw Markdown symbols & dots so TTS speaks naturally */
-    function cleanTextForSpeech(text) {
-      return text
-        .replace(/J\.A\.R\.V\.I\.S\.?/gi, "Jarvis")
-        .replace(/\*+/g, "")
-        .replace(/#+|-+|---+/g, "")
-        .replace(/[`~_]/g, "")
-        .replace(/\s+/g, " ")
-        .trim();
-    }
-
-    /* Deep Male Voice TTS Function */
-    function speak(text) {
-      if (!voiceEnabled || !('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-
-      const cleanedText = cleanTextForSpeech(text);
-      const utterance = new SpeechSynthesisUtterance(cleanedText);
-      const voices = window.speechSynthesis.getVoices();
-
-      // Search specifically for male voice engines
-      const maleVoice = voices.find(v => 
-        v.lang.startsWith('en') && (
-          v.name.includes('David') || 
-          v.name.includes('George') || 
-          v.name.includes('Guy') || 
-          v.name.includes('Mark') || 
-          v.name.includes('Alex') || 
-          v.name.includes('Daniel') ||
-          v.name.includes('Google UK English Male') ||
-          v.name.includes('Male')
-        )
-      ) || voices.find(v => v.lang.startsWith('en')) || voices[0];
-
-      if (maleVoice) utterance.voice = maleVoice;
-
-      // Pitch and rate adjusted for a deeper, natural J.A.R.V.I.S. cadence
-      utterance.pitch = 0.75; 
-      utterance.rate = 0.95; 
-
-      window.speechSynthesis.speak(utterance);
-    }
-
-    // Pre-load voices asynchronously when page loads
-    if (typeof speechSynthesis !== 'undefined') {
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.getVoices();
-      };
-    }
-  </script>
-</body>
-</html>
+    /* ============================================================
+       COLORFUL PDF NOTES
+       1. Button calls /api/notes  -> Gemini returns structured JSON
+       2. buildNotesHtml() fills a colorful template with that JSON
+       3. html2pdf turns the template into a downloadable A4 PDF
+       ====================================
