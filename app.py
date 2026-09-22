@@ -1,12 +1,13 @@
 """
-J.A.R.V.I.S. Backend Bridge
+Jarvis Backend Bridge
 ----------------------------------
-A secure Flask proxy that sits between the browser-based JARVIS UI / Pi client
-and Google's Gemini API. The API key is NEVER sent to, or exposed in, the
+A secure Flask proxy that sits between the browser-based Jarvis UI and
+Google's Gemini API. The API key is NEVER sent to, or exposed in, the
 client. All requests are relayed server-side.
 
 Endpoints
-  POST /api/jarvis  -> normal tutor chat (plain text reply)
+  POST /api/jarvis  -> streaming chat reply (Server-Sent Events).
+                       Accepts an optional base64 photo (camera or upload) alongside the text.
   POST /api/notes   -> turns one Jarvis answer into structured JSON study notes
                        (the browser turns that JSON into a colorful PDF)
 """
@@ -15,8 +16,9 @@ import os
 import re
 import json
 import time
+import base64
 import logging
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, Response, stream_with_context
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -27,17 +29,37 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("jarvis")
 
-JARVIS_SYSTEM_PROMPT = """
-You are J.A.R.V.I.S. — a clear, supportive educational AI assistant for students who acts like a wise, soft-spoken male tutor explaining concepts to students gently.
+# ---------- Modes: each gives Jarvis a different personality ----------
+BASE_RULES = """
+You are Jarvis, a helpful, friendly AI assistant. Never write your name with dots or periods.
 
-Guidelines:
-- Explain concepts using simple, plain, everyday English that anyone can understand easily.
-- Avoid complex technical jargon, overly formal terms, or unnecessary fluff.
-- Keep answers direct, structured, and easy to follow.
-- Maintain a helpful, polite, and encouraging tone at all times.
-- Do NOT use Markdown symbols like asterisks (**), hashes (###), or dashes (---) in your text output. Write in plain conversational text paragraphs.
-- Always write your name as "Jarvis" without dots or periods.
+Formatting rules:
+- Use Markdown: ## headings, **bold** for key terms, bullet points, and numbered steps.
+- Put code in fenced code blocks with a language tag, e.g. ```python
+- Use $...$ for inline math and $$...$$ for display math when helpful.
+- Keep paragraphs short.
+
+Behaviour rules:
+- If the question is unclear or missing details you need, ask ONE short clarifying question before answering.
+- If the conversation history below is empty, this is the first message: greet the user briefly and answer.
+- Use the current date, time and time zone given below whenever the question depends on "today", "now", or a deadline.
 """
+
+MODE_PROMPTS = {
+    "chat": BASE_RULES + """
+You are in Chat mode: a warm, well-informed general-purpose assistant. Be concise but thorough, and use your judgement on how much detail is useful.
+""",
+    "study": BASE_RULES + """
+You are in Study mode: a patient, encouraging tutor. Explain concepts in simple, plain, everyday English, one idea at a time. Avoid unexplained jargon. Check understanding by offering a short example.
+""",
+    "code": BASE_RULES + """
+You are in Code mode: a precise programming assistant. Default to the language already in use in the conversation; ask if none is clear. Give working code first, then a brief explanation. Point out bugs or edge cases you notice.
+""",
+    "writer": BASE_RULES + """
+You are in Writer mode: a skilled writing assistant for essays, emails, posts and stories. If the audience, tone or length is not given, ask briefly. Offer the draft, then one or two short notes on choices you made.
+""",
+}
+DEFAULT_MODE = "chat"
 
 NOTES_SYSTEM_PROMPT = """
 You turn a tutor's explanation into clean, well organised study notes for a student.
@@ -55,7 +77,7 @@ Rules:
 - key_terms: 3 to 8 important words with a simple meaning. Use an empty list if there are no real terms.
 - remember: 2 to 4 short tips or facts the student should remember.
 - quiz: 3 to 5 short questions with short answers, so the student can test themselves.
-- If the name of the tutor ever appears, write it as "Jarvis" without dots or periods.
+- If the name of the assistant ever appears, write it as "Jarvis" without dots or periods.
 """
 
 # Valid production Gemini models
@@ -63,6 +85,29 @@ PRIMARY_MODEL = "gemini-3.8-flash"
 FALLBACK_MODELS = ["gemini-3.5-flash"]
 
 MAX_NOTES_INPUT_CHARS = 12000
+MAX_PROMPT_CHARS = 4000          # longest single message Jarvis will read
+MAX_HISTORY_CHARS = 6000         # oldest turns are dropped once history grows past this
+MAX_HISTORY_TURNS = 20           # also cap by turn count
+MAX_IMAGE_BYTES = 6 * 1024 * 1024  # 6 MB decoded, keeps the request fast and free-tier friendly
+
+# ---------- Very small best-effort rate limiter ----------
+# NOTE: this dict lives in one running process. On a classic server (Render, a
+# VM, `python app.py`) it works across requests. On Vercel's serverless Python
+# functions each request can start a fresh process, so this becomes a soft,
+# per-instance limit rather than a hard global one. Good enough to blunt a
+# runaway script; for a strict global limit, use a shared store like Redis.
+_rate_buckets = {}
+RATE_LIMIT_COUNT = 20
+RATE_LIMIT_WINDOW_SECONDS = 5 * 60
+
+
+def rate_limited(ip):
+    now = time.time()
+    hits = [t for t in _rate_buckets.get(ip, []) if now - t < RATE_LIMIT_WINDOW_SECONDS]
+    hits.append(now)
+    _rate_buckets[ip] = hits
+    return len(hits) > RATE_LIMIT_COUNT
+
 
 app = Flask(__name__)
 
@@ -96,45 +141,106 @@ class StudyNotes(BaseModel):
     quiz: list[QuizItem]
 
 
-def generate_content_with_retry(ai_client, prompt, config=None, validate=None):
+def classify_error(e):
+    """Turn a Gemini error into a short reason code. Full details stay in the server log."""
+    text = str(e).lower()
+    if "429" in text or "resource_exhausted" in text or "quota" in text or "rate limit" in text:
+        return "quota"
+    if "api key" in text or "api_key" in text or "permission_denied" in text or "401" in text or "403" in text:
+        return "key"
+    if "404" in text or "not_found" in text or "not found" in text:
+        return "model"
+    if "503" in text or "500" in text or "unavailable" in text or "overloaded" in text:
+        return "busy"
+    return "other"
+
+
+def failure_message(errors):
+    """Pick the most useful message when every model failed."""
+    for reason in ("key", "model", "quota", "busy", "empty", "other"):
+        if reason in errors:
+            break
+    else:
+        reason = "busy"
+
+    messages = {
+        "key": "The Gemini API key was rejected. Please check GEMINI_API_KEY in the environment settings.",
+        "model": "The AI model could not be found. Please check the model names in app.py.",
+        "quota": "Jarvis has reached its usage limit for now. Please try again later.",
+        "busy": "Central command servers are currently experiencing high demand. Please try again in a few moments.",
+        "empty": "Jarvis could not put together an answer. Please try asking again.",
+        "other": "Central command error. Please try again in a moment.",
+    }
+    return messages[reason]
+
+
+def build_transcript(history):
     """
-    Tries the primary model first. If it encounters high demand (503) or an error,
-    it falls back quickly to secondary models to stay within Vercel's timeout.
-
-    config   - optional GenerateContentConfig (defaults to the tutor chat config)
-    validate - optional function(text) -> bool. If it returns False, the next
-               model is tried, exactly as if the model had failed.
+    Turn the client's [{role, text}, ...] history into a plain-text transcript.
+    Plain text (rather than structured role objects) keeps this compatible with
+    whichever google-genai SDK version is installed. Oldest turns are dropped
+    once the transcript grows past the caps above.
     """
-    models_to_try = [PRIMARY_MODEL] + FALLBACK_MODELS
+    if not isinstance(history, list):
+        return ""
 
-    if config is None:
-        config = types.GenerateContentConfig(
-            system_instruction=JARVIS_SYSTEM_PROMPT,
-            max_output_tokens=8192,
-            temperature=0.7,
-        )
+    turns = []
+    for item in history[-MAX_HISTORY_TURNS:]:
+        if not isinstance(item, dict):
+            continue
+        role = "You" if item.get("role") == "user" else "Jarvis"
+        text = str(item.get("text") or "").strip()[:MAX_PROMPT_CHARS]
+        if text:
+            turns.append(f"{role}: {text}")
 
-    for model_name in models_to_try:
+    transcript = "\n".join(turns)
+    if len(transcript) > MAX_HISTORY_CHARS:
+        transcript = transcript[-MAX_HISTORY_CHARS:]
+        nl = transcript.find("\n")  # avoid starting mid-line
+        if nl != -1:
+            transcript = transcript[nl + 1:]
+    return transcript
+
+
+def build_chat_config(mode, thinking):
+    system_prompt = MODE_PROMPTS.get(mode, MODE_PROMPTS[DEFAULT_MODE])
+    kwargs = dict(
+        system_instruction=system_prompt,
+        max_output_tokens=8192,
+        temperature=0.7,
+    )
+    if thinking:
         try:
-            logger.info(f"Invoking model: {model_name}...")
-            response = ai_client.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config=config,
-            )
+            kwargs["thinking_level"] = "high"
+        except Exception:
+            pass  # older SDKs without this option simply ignore it
+    return types.GenerateContentConfig(**kwargs)
 
-            # Verify valid response text
-            if response and response.text:
-                text = response.text.strip()
-                if validate is None or validate(text):
-                    return text
-                logger.warning(f"Model {model_name} returned unusable output.")
 
-        except Exception as e:
-            logger.warning(f"Model {model_name} failed: {str(e)}")
-            time.sleep(0.5)  # Brief pause before switching models
+def decode_image(data_url):
+    """
+    Turn a 'data:image/jpeg;base64,....' string from the browser's camera or
+    file picker into a Gemini image Part. Returns None (never raises) if the
+    string is missing, malformed, an unsupported type, or too large.
+    """
+    if not data_url or not isinstance(data_url, str) or not data_url.startswith("data:"):
+        return None
+    try:
+        header, b64data = data_url.split(",", 1)
+        mime_type = header.split(";")[0].replace("data:", "") or "image/jpeg"
+        if not mime_type.startswith("image/"):
+            return None
+        raw = base64.b64decode(b64data)
+        if len(raw) > MAX_IMAGE_BYTES:
+            return None
+        return types.Part.from_bytes(data=raw, mime_type=mime_type)
+    except Exception as e:
+        logger.warning(f"Could not decode image: {e}")
+        return None
 
-    return None
+
+def sse(payload):
+    return f"data: {json.dumps(payload)}\n\n"
 
 
 def parse_notes(raw):
@@ -154,6 +260,34 @@ def parse_notes(raw):
     return data
 
 
+def generate_content_with_retry(ai_client, prompt, config, validate=None, errors=None):
+    """Non-streaming call used by /api/notes. Tries each model in turn."""
+    for model_name in [PRIMARY_MODEL] + FALLBACK_MODELS:
+        try:
+            logger.info(f"Invoking model: {model_name}...")
+            response = ai_client.models.generate_content(model=model_name, contents=prompt, config=config)
+
+            if response and response.text:
+                text = response.text.strip()
+                if validate is None or validate(text):
+                    return text
+                logger.warning(f"Model {model_name} returned unusable output.")
+                if errors is not None:
+                    errors.append("empty")
+            else:
+                logger.warning(f"Model {model_name} returned an empty response.")
+                if errors is not None:
+                    errors.append("empty")
+
+        except Exception as e:
+            logger.warning(f"Model {model_name} failed: {str(e)}")
+            if errors is not None:
+                errors.append(classify_error(e))
+            time.sleep(0.5)
+
+    return None
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -163,35 +297,78 @@ def index():
 def jarvis_query():
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        return jsonify(
-            {"reply": "Systems offline. GEMINI_API_KEY is not set on Vercel environment variables."}
-        ), 503
+        return Response(sse({"error": "Systems offline. GEMINI_API_KEY is not set."}), mimetype="text/event-stream")
+
+    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+    if rate_limited(client_ip):
+        return Response(
+            sse({"error": "Jarvis is getting a lot of requests from you right now. Please slow down a little."}),
+            mimetype="text/event-stream",
+        )
 
     data = request.get_json(silent=True) or {}
-    prompt = (data.get("prompt") or "").strip()
+    prompt = (data.get("prompt") or "").strip()[:MAX_PROMPT_CHARS]
+    mode = data.get("mode") or DEFAULT_MODE
+    thinking = bool(data.get("thinking"))
+    history = data.get("history") or []
+    client_time = (data.get("client_time") or "").strip()[:100]
+    client_tz = (data.get("client_timezone") or "").strip()[:60]
+    image_part = decode_image(data.get("image"))
 
+    if not prompt and not image_part:
+        return Response(sse({"error": "I didn't quite catch that. Please repeat your query."}), mimetype="text/event-stream")
     if not prompt:
-        return jsonify({"reply": "I didn't quite catch that. Please repeat your query."}), 400
+        prompt = "Please look at this photo and describe or explain what's in it."
 
-    try:
-        # Initialize client inside request scope for serverless compatibility
+    transcript = build_transcript(history)
+    context_lines = []
+    if client_time:
+        context_lines.append(f"Current date and time where the user is: {client_time}")
+    if client_tz:
+        context_lines.append(f"User's time zone: {client_tz}")
+    context = ("\n".join(context_lines) + "\n\n") if context_lines else ""
+
+    text_contents = f"{context}Conversation so far:\n{transcript}\n\nYou: {prompt}\nJarvis:" if transcript \
+        else f"{context}You: {prompt}\nJarvis:"
+    contents = [text_contents, image_part] if image_part else text_contents
+
+    config = build_chat_config(mode, thinking)
+
+    def generate():
         ai_client = genai.Client(api_key=api_key)
+        models_to_try = [PRIMARY_MODEL] + FALLBACK_MODELS
+        started = False
 
-        reply_text = generate_content_with_retry(ai_client, prompt)
+        for model_name in models_to_try:
+            if started:
+                break
+            try:
+                logger.info(f"Streaming from model: {model_name}...")
+                stream = ai_client.models.generate_content_stream(model=model_name, contents=contents, config=config)
+                for chunk in stream:
+                    piece = getattr(chunk, "text", None)
+                    if piece:
+                        started = True
+                        yield sse({"chunk": piece})
 
-        if not reply_text:
-            return jsonify(
-                {"reply": "Central command servers are currently experiencing high demand. Please try again in a few moments."}
-            ), 503
+                if started:
+                    yield sse({"done": True})
+                    return
 
-        return jsonify({"reply": reply_text})
+            except Exception as e:
+                logger.warning(f"Model {model_name} failed: {str(e)}")
+                if not started:
+                    continue  # try the next model
+                # A model that fails mid-stream can't be safely restarted from
+                # a different model without repeating text, so stop cleanly.
+                yield sse({"error": "The connection to Jarvis was interrupted. Please try again."})
+                return
 
-    except Exception as e:
-        # Full details go to the server log only, never to the browser
-        logger.error(f"Error executing request: {e}")
-        return jsonify(
-            {"reply": "Central command error. Please try again in a moment."}
-        ), 500
+        if not started:
+            yield sse({"error": "Central command servers are currently experiencing high demand. Please try again in a few moments."})
+
+    headers = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    return Response(stream_with_context(generate()), mimetype="text/event-stream", headers=headers)
 
 
 @app.route("/api/notes", methods=["POST"])
@@ -199,7 +376,7 @@ def notes_query():
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         return jsonify(
-            {"reply": "Systems offline. GEMINI_API_KEY is not set on Vercel environment variables."}
+            {"reply": "Systems offline. GEMINI_API_KEY is not set on the environment variables."}
         ), 503
 
     data = request.get_json(silent=True) or {}
@@ -211,7 +388,7 @@ def notes_query():
 
     prompt = (
         f"Question the student asked: {topic or 'not provided'}\n\n"
-        f"Tutor explanation to turn into study notes:\n{text}"
+        f"Explanation to turn into study notes:\n{text}"
     )
 
     try:
@@ -225,28 +402,23 @@ def notes_query():
             temperature=0.4,
         )
 
+        errors = []
         raw = generate_content_with_retry(
-            ai_client,
-            prompt,
-            config=config,
+            ai_client, prompt, config=config,
             validate=lambda t: parse_notes(t) is not None,
+            errors=errors,
         )
         notes = parse_notes(raw)
 
         if not notes:
-            return jsonify(
-                {"reply": "I could not build the notes right now. Please try again in a few moments."}
-            ), 503
+            return jsonify({"reply": failure_message(errors)}), 503
 
         return jsonify({"notes": notes})
 
     except Exception as e:
         logger.error(f"Error building notes: {e}")
-        return jsonify(
-            {"reply": "Notes error. Please try again in a moment."}
-        ), 500
+        return jsonify({"reply": "Notes error. Please try again in a moment."}), 500
 
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-             
