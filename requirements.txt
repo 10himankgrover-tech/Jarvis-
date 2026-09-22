@@ -1,7 +1,0 @@
-Flask
-google-genai
-python-dotenv
-pydantic
-reportlab
-edge-tts
-gunicorn
