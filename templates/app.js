@@ -77,9 +77,8 @@ function stopSpeaking() {
 
 function toggleVoice() {
   voiceEnabled = !voiceEnabled;
-  const btn = document.getElementById('voiceToggleBtn');
-  if (voiceEnabled) { btn.textContent = '🔊 Voice ON'; btn.style.opacity = '1'; }
-  else { btn.textContent = '🔇 Muted'; btn.style.opacity = '0.6'; stopSpeaking(); }
+  document.getElementById('voiceToggleBtn').classList.toggle('active', voiceEnabled);
+  if (!voiceEnabled) stopSpeaking();
 }
 
 if (typeof speechSynthesis !== 'undefined') {
@@ -93,15 +92,40 @@ function toggleMobileHistory() { document.getElementById('historyPanel').classLi
 
 function toggleTheme() {
   const body = document.body;
-  const btn = document.getElementById('themeToggleBtn');
-  if (body.getAttribute('data-theme') === 'light') { body.removeAttribute('data-theme'); btn.textContent = '☀️ Light'; }
-  else { body.setAttribute('data-theme', 'light'); btn.textContent = '🌙 Dark'; }
+  const isLight = body.getAttribute('data-theme') === 'light';
+  if (isLight) body.removeAttribute('data-theme'); else body.setAttribute('data-theme', 'light');
+  document.getElementById('themeToggleSwitch').classList.toggle('active', !isLight);
 }
 
 function toggleThinking() {
   thinkingEnabled = !thinkingEnabled;
-  document.getElementById('thinkToggleBtn').classList.toggle('active-toggle', thinkingEnabled);
+  document.getElementById('thinkToggleBtn').classList.toggle('active', thinkingEnabled);
 }
+
+/* ============================================================
+   SETTINGS DRAWER + PLUS MENU
+   ============================================================ */
+function toggleSettings() {
+  document.getElementById('settingsDrawer').classList.toggle('open');
+  document.getElementById('settingsBackdrop').classList.toggle('open');
+}
+function closeSettings() {
+  document.getElementById('settingsDrawer').classList.remove('open');
+  document.getElementById('settingsBackdrop').classList.remove('open');
+}
+function togglePlusMenu() {
+  document.getElementById('plusMenu').classList.toggle('open');
+}
+function closePlusMenu() {
+  document.getElementById('plusMenu').classList.remove('open');
+}
+document.addEventListener('click', function (e) {
+  const menu = document.getElementById('plusMenu');
+  const btn = document.getElementById('plusBtn');
+  if (menu && menu.classList.contains('open') && !menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+    closePlusMenu();
+  }
+});
 
 function setMode(value) {
   currentMode = value;
