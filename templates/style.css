@@ -281,15 +281,23 @@ svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; stroke
 .msg-md li { margin: 3px 0; }
 .msg-md strong { color: var(--text-sub); }
 .msg-md code { background: var(--code-bg); padding: 1px 6px; border-radius: 5px; font-size: 0.85em; font-family: Consolas, 'Courier New', monospace; }
-.msg-md pre {
-  background: var(--code-bg); border: 1px solid var(--msg-bot-border); border-radius: 12px;
-  padding: 10px 12px; margin: 8px 0; overflow-x: auto; position: relative;
+
+.code-block {
+  border: 1px solid var(--msg-bot-border); border-radius: 14px; overflow: hidden; margin: 10px 0;
+  background: var(--code-bg);
 }
-.msg-md pre code { background: none; padding: 0; font-size: 0.82rem; line-height: 1.4; }
+.code-block-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 12px; background: rgba(255, 255, 255, 0.06); border-bottom: 1px solid var(--msg-bot-border);
+}
+.code-lang { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.02em; color: var(--text-sub); text-transform: lowercase; }
+.msg-md pre { padding: 12px 14px; margin: 0; overflow-x: auto; background: none; border: none; border-radius: 0; }
+.msg-md pre code { background: none; padding: 0; font-size: 0.82rem; line-height: 1.45; }
 .code-copy-btn {
-  position: absolute; top: 6px; right: 6px; background: rgba(255, 255, 255, 0.14); color: var(--text-main);
-  border: 1px solid var(--card-border); border-radius: 8px; font-size: 0.7rem; padding: 3px 9px; cursor: pointer;
+  display: flex; align-items: center; gap: 5px; background: rgba(255, 255, 255, 0.1); color: var(--text-main);
+  border: 1px solid var(--card-border); border-radius: 999px; font-size: 0.68rem; padding: 4px 10px; cursor: pointer;
 }
+.code-copy-btn svg { width: 12px; height: 12px; }
 .code-copy-btn:active { transform: scale(0.95); }
 .msg-md blockquote { border-left: 3px solid var(--text-sub); padding-left: 10px; margin: 6px 0; opacity: 0.85; }
 
@@ -299,10 +307,16 @@ svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.8; stroke
 .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
 @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
 
-.msg-meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.68rem; opacity: 0.7; flex-wrap: wrap; }
-.msg-actions { display: flex; gap: 6px; }
-.msg-action-btn { background: none; border: none; color: inherit; opacity: 0.75; cursor: pointer; font-size: 0.72rem; padding: 2px 4px; }
-.msg-action-btn:hover { opacity: 1; }
+.msg-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.68rem; opacity: 0.85; flex-wrap: wrap; }
+.msg-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.msg-action-btn {
+  display: flex; align-items: center; gap: 5px; background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--card-border); color: var(--text-main); opacity: 0.85; cursor: pointer;
+  font-size: 0.7rem; padding: 4px 10px; border-radius: 999px; transition: opacity 0.14s ease, transform 0.14s ease, background 0.14s ease;
+}
+.msg-action-btn svg { width: 12px; height: 12px; }
+.msg-action-btn:hover { opacity: 1; background: rgba(124, 92, 255, 0.18); }
+.msg-action-btn:active { transform: scale(0.95); }
 
 .pdf-btn {
   display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; padding: 10px 16px;
