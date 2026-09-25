@@ -331,20 +331,29 @@ function appendMessageUI(msg) {
 
   if (msg.sender === 'bot' && msg.text) {
     const copyBtn = document.createElement('button');
-    copyBtn.className = 'msg-action-btn'; copyBtn.textContent = '📋 Copy';
-    copyBtn.onclick = () => navigator.clipboard && navigator.clipboard.writeText(msg.text).catch(() => {});
+    copyBtn.className = 'msg-action-btn';
+    copyBtn.innerHTML = '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><span>Copy</span>';
+    copyBtn.onclick = () => {
+      if (!navigator.clipboard) return;
+      navigator.clipboard.writeText(msg.text).then(() => {
+        const label = copyBtn.querySelector('span'); const prev = label.textContent;
+        label.textContent = 'Copied'; setTimeout(() => { label.textContent = prev; }, 1200);
+      }).catch(() => {});
+    };
     actions.appendChild(copyBtn);
 
     if (!msg.isError) {
       const regenBtn = document.createElement('button');
-      regenBtn.className = 'msg-action-btn'; regenBtn.textContent = '↻ Regenerate';
+      regenBtn.className = 'msg-action-btn';
+      regenBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 1 2.6 6.4M3 21v-6h6"/></svg><span>Regenerate</span>';
       regenBtn.onclick = () => regenerateMessage(wrapper.dataset.msgId);
       actions.appendChild(regenBtn);
     }
   }
   if (msg.sender === 'user') {
     const editBtn = document.createElement('button');
-    editBtn.className = 'msg-action-btn'; editBtn.textContent = '✏️ Edit';
+    editBtn.className = 'msg-action-btn';
+    editBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>Edit</span>';
     editBtn.onclick = () => { document.getElementById('userInput').value = msg.text || ''; document.getElementById('userInput').focus(); };
     actions.appendChild(editBtn);
   }
@@ -353,7 +362,7 @@ function appendMessageUI(msg) {
 
   if (msg.canPdf) {
     const pdfBtn = document.createElement('button');
-    pdfBtn.className = 'pdf-btn'; pdfBtn.textContent = '📄 Make colorful PDF';
+    pdfBtn.className = 'pdf-btn'; pdfBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><span>Make colorful PDF</span>';
     pdfBtn.onclick = () => makePdf(pdfBtn, msg.topic || '', msg.text || '');
     wrapper.appendChild(pdfBtn);
   }
@@ -455,7 +464,7 @@ async function streamReply(payload) {
           saveMessageToSession(finalMsg);
           if (canPdf) {
             const pdfBtn = document.createElement('button');
-            pdfBtn.className = 'pdf-btn'; pdfBtn.textContent = '📄 Make colorful PDF';
+            pdfBtn.className = 'pdf-btn'; pdfBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><span>Make colorful PDF</span>';
             pdfBtn.onclick = () => makePdf(pdfBtn, finalMsg.topic || '', finalMsg.text);
             botWrapper.appendChild(pdfBtn);
           }
