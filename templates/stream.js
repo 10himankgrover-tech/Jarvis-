@@ -110,7 +110,7 @@ function mdToHtml(raw) {
       flushPara(); closeList();
       const block = codeBlocks[Number(codeMatch[1])];
       const idx = codeMatch[1];
-      html += `<pre><code data-code-idx="${idx}">${escapeHtml(block.code.replace(/\n$/, ''))}</code><button type="button" class="code-copy-btn" data-code-idx="${idx}">Copy</button></pre>`;
+      html += `<div class="code-block"><div class="code-block-head"><span class="code-lang">${escapeHtml(block.lang)}</span><button type="button" class="code-copy-btn" data-code-idx="${idx}"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg><span>Copy</span></button></div><pre><code data-code-idx="${idx}">${escapeHtml(block.code.replace(/\n$/, ''))}</code></pre></div>`;
     } else if (mathMatch) {
       flushPara(); closeList();
       const expr = mathBlocks[Number(mathMatch[1])];
@@ -148,10 +148,10 @@ function renderMarkdownInto(el, text) {
     btn.onclick = () => {
       const idx = Number(btn.dataset.codeIdx);
       const code = codeBlocks[idx] ? codeBlocks[idx].code : '';
+      const label = btn.querySelector('span');
       if (navigator.clipboard) {
         navigator.clipboard.writeText(code).then(() => {
-          btn.textContent = 'Copied!';
-          setTimeout(() => { btn.textContent = 'Copy'; }, 1200);
+          if (label) { label.textContent = 'Copied!'; setTimeout(() => { label.textContent = 'Copy'; }, 1200); }
         }).catch(() => {});
       }
     };
