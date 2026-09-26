@@ -55,15 +55,16 @@ function buildNotesHtml(n, colors) {
       ${icon} ${pdfEsc(text)}
     </div>`;
 
+  const brandGradient = 'linear-gradient(135deg, #00c2f0 0%, #7c5cff 55%, #ff2fb0 120%)';
   const cover = `
-    <div class="keep" style="background:${C[0]};color:#ffffff;border-radius:14px;padding:22px 24px;margin-bottom:16px;">
-      <div style="font-family:${serif};font-size:28px;font-weight:bold;line-height:1.2;">${pdfEsc(n.title)}</div>
-      ${n.subtitle ? `<div style="font-size:14px;margin-top:6px;">${pdfEsc(n.subtitle)}</div>` : ''}
-      <div style="font-size:12px;margin-top:12px;">Notes by Jarvis &nbsp;|&nbsp; ${pdfEsc(today)}</div>
+    <div class="keep" style="background:${brandGradient};color:#ffffff;border-radius:18px;padding:24px 26px;margin-bottom:18px;box-shadow:0 8px 24px rgba(124,92,255,0.25);">
+      <div style="font-family:${serif};font-size:29px;font-weight:bold;line-height:1.2;">${pdfEsc(n.title)}</div>
+      ${n.subtitle ? `<div style="font-size:14px;margin-top:7px;opacity:0.95;">${pdfEsc(n.subtitle)}</div>` : ''}
+      <div style="font-size:12px;margin-top:14px;opacity:0.85;">Notes by Jarvis &nbsp;•&nbsp; ${pdfEsc(today)}</div>
     </div>`;
 
   const overview = n.overview ? `
-    <div class="keep" style="border-left:6px solid ${C[0]};background:${tint(0, 0.1)};padding:10px 14px;border-radius:0 10px 10px 0;margin-bottom:16px;">
+    <div class="keep" style="border-left:6px solid ${C[0]};background:${tint(0, 0.1)};padding:10px 14px;border-radius:0 14px 14px 0;margin-bottom:16px;">
       <b style="color:${C[0]};">In short</b>
       <div style="margin-top:3px;">${pdfEsc(n.overview)}</div>
     </div>` : '';
@@ -72,10 +73,10 @@ function buildNotesHtml(n, colors) {
     const color = C[i % C.length];
     return `
     <div class="keep" style="margin-bottom:16px;">
-      <div style="background:${color};color:#ffffff;padding:9px 14px;border-radius:10px 10px 0 0;font-family:${serif};font-size:17px;font-weight:bold;">
+      <div style="background:${color};color:#ffffff;padding:9px 14px;border-radius:14px 14px 0 0;font-family:${serif};font-size:17px;font-weight:bold;">
         ${icons[i % icons.length]} ${pdfEsc(s.heading)}
       </div>
-      <div style="border:1.5px solid ${color};border-top:none;border-radius:0 0 10px 10px;padding:12px 14px;background:${tint(i)};">
+      <div style="border:1.5px solid ${color};border-top:none;border-radius:0 0 14px 14px;padding:12px 14px;background:${tint(i)};">
         ${s.explanation ? `<div style="margin-bottom:6px;">${pdfEsc(s.explanation)}</div>` : ''}
         ${bullets(s.points, color)}
         ${s.formula ? `
@@ -102,7 +103,7 @@ function buildNotesHtml(n, colors) {
     </div>` : '';
 
   const remember = (n.remember || []).length ? `
-    <div class="keep" style="background:${C[3]};color:#ffffff;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+    <div class="keep" style="background:${C[3]};color:#ffffff;border-radius:16px;padding:15px 17px;margin-bottom:16px;">
       <div style="font-family:${serif};font-size:17px;font-weight:bold;margin-bottom:6px;">⭐ Remember this</div>
       ${n.remember.map(r => `
         <div style="position:relative;padding-left:16px;margin:4px 0;">
@@ -134,9 +135,11 @@ async function makePdf(btn, topic, text) {
     return;
   }
 
-  const originalLabel = '📄 Make colorful PDF';
+  const originalHtml = btn.innerHTML;
+  const setLabel = (msg) => { const s = btn.querySelector('span'); if (s) s.textContent = msg; else btn.textContent = msg; };
+
   btn.disabled = true;
-  btn.textContent = '⏳ Building your notes...';
+  setLabel('Building your notes...');
 
   try {
     const res = await fetch('/api/notes', {
@@ -160,13 +163,16 @@ async function makePdf(btn, topic, text) {
       pagebreak: { mode: ['css', 'legacy'], avoid: '.keep' }
     }).from(holder).save();
 
-    btn.textContent = '✅ Saved. Tap to download again';
+    setLabel('Saved! Tap to download again');
   } catch (err) {
     console.error(err);
-    btn.textContent = '⚠️ Failed. Tap to try again';
+    // Show the real reason (e.g. a Gemini quota limit) instead of a generic failure
+    const reason = (err && err.message) ? err.message : 'Something went wrong.';
+    setLabel(reason.length > 60 ? reason.slice(0, 57) + '...' : reason);
+    btn.title = reason;
   } finally {
     btn.disabled = false;
-    setTimeout(() => { btn.textContent = originalLabel; }, 4000);
+    setTimeout(() => { btn.innerHTML = originalHtml; btn.title = ''; }, 5000);
   }
 }
 
