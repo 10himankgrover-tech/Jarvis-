@@ -428,13 +428,20 @@ async function regenerateMessage(botMsgId) {
   await streamReply({ prompt: userMsg.text, image: userMsg.photo, history: historyPayload, topic: userMsg.text });
 }
 
+function typingLabel(payload) {
+  if (payload.image) return 'Looking at your photo...';
+  if (thinkingEnabled) return 'Thinking it through carefully...';
+  const byMode = { chat: 'Thinking...', study: 'Preparing an explanation...', code: 'Writing code...', writer: 'Drafting...' };
+  return byMode[currentMode] || 'Thinking...';
+}
+
 async function streamReply(payload) {
   currentAbortController = new AbortController();
   setStreamingUI(true);
 
   const botWrapper = appendMessageUI({ id: uid(), sender: 'bot', text: '', time: Date.now() });
   const bodyEl = botWrapper.querySelector('.msg-md');
-  bodyEl.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  bodyEl.innerHTML = `<div class="typing-status">${typingLabel(payload)}</div><div class="typing-dots"><span></span><span></span><span></span></div>`;
 
   let fullText = '';
   let firstChunk = true;
