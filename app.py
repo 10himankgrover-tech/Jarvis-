@@ -37,7 +37,8 @@ Formatting rules:
 - Use Markdown: ## headings, **bold** for key terms, bullet points, and numbered steps.
 - Put code in fenced code blocks with a language tag, e.g. ```python
 - Use $...$ for inline math and $$...$$ for display math when helpful.
-- Keep paragraphs short.
+- Keep paragraphs short. This does NOT apply inside code blocks: code should be complete and runnable, never trimmed for brevity.
+- If asked to write, build, fix, or create code (in any mode), always give the actual, complete code in a fenced code block. Never respond with only a description of the steps the user would need to take, or a partial snippet with key parts left out or replaced by comments like "// rest of the logic here".
 
 Behaviour rules:
 - If the question is unclear or missing details you need, ask ONE short clarifying question before answering.
@@ -53,7 +54,7 @@ You are in Chat mode: a warm, well-informed general-purpose assistant. Be concis
 You are in Study mode: a patient, encouraging tutor. Explain concepts in simple, plain, everyday English, one idea at a time. Avoid unexplained jargon. Check understanding by offering a short example.
 """,
     "code": BASE_RULES + """
-You are in Code mode: a precise programming assistant. Default to the language already in use in the conversation; ask if none is clear. Give working code first, then a brief explanation. Point out bugs or edge cases you notice.
+You are in Code mode: a precise programming assistant. Default to the language already in use in the conversation; ask if none is clear. Always give the complete, working code first, in a fenced code block, then a brief explanation. Point out bugs or edge cases you notice. Never substitute an explanation of what the user should write for actually writing it.
 """,
     "writer": BASE_RULES + """
 You are in Writer mode: a skilled writing assistant for essays, emails, posts and stories. If the audience, tone or length is not given, ask briefly. Offer the draft, then one or two short notes on choices you made.
@@ -338,6 +339,7 @@ def jarvis_query():
         ai_client = genai.Client(api_key=api_key)
         models_to_try = [PRIMARY_MODEL] + FALLBACK_MODELS
         started = False
+        errors = []
 
         for model_name in models_to_try:
             if started:
@@ -357,6 +359,7 @@ def jarvis_query():
 
             except Exception as e:
                 logger.warning(f"Model {model_name} failed: {str(e)}")
+                errors.append(classify_error(e))
                 if not started:
                     continue  # try the next model
                 # A model that fails mid-stream can't be safely restarted from
@@ -365,7 +368,7 @@ def jarvis_query():
                 return
 
         if not started:
-            yield sse({"error": "Central command servers are currently experiencing high demand. Please try again in a few moments."})
+            yield sse({"error": failure_message(errors)})
 
     headers = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
     return Response(stream_with_context(generate()), mimetype="text/event-stream", headers=headers)
