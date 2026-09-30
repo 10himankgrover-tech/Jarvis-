@@ -354,7 +354,7 @@ function appendMessageUI(msg) {
     const editBtn = document.createElement('button');
     editBtn.className = 'msg-action-btn';
     editBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>Edit</span>';
-    editBtn.onclick = () => { document.getElementById('userInput').value = msg.text || ''; document.getElementById('userInput').focus(); };
+    editBtn.onclick = () => { document.getElementById('userInput').value = msg.text || ''; autoGrowInput(); document.getElementById('userInput').focus(); };
     actions.appendChild(editBtn);
   }
   meta.appendChild(actions);
@@ -388,6 +388,24 @@ function setStreamingUI(active) {
   document.getElementById('stopBtn').style.display = active ? '' : 'none';
 }
 
+function handleInputKeydown(event) {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    sendQuery();
+  }
+}
+
+function autoGrowInput() {
+  const el = document.getElementById('userInput');
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+
+function resetInputHeight() {
+  const el = document.getElementById('userInput');
+  el.style.height = 'auto';
+}
+
 async function sendQuery() {
   if (isStreaming) return;
   const inputField = document.getElementById('userInput');
@@ -403,6 +421,7 @@ async function sendQuery() {
 
   const photoToSend = attachedPhoto ? attachedPhoto.dataUrl : null;
   inputField.value = '';
+  resetInputHeight();
   clearAttachedPhoto();
   document.getElementById('starterRow').innerHTML = '';
 
