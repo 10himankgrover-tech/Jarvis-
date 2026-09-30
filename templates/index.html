@@ -187,7 +187,7 @@
         </div>
 
         <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;" onchange="onPhotoChosen(this.files[0])">
-        <textarea id="userInput" rows="1" placeholder="Ask Jarvis anything..." onkeydown="handleInputKeydown(event)" oninput="autoGrowInput()"></textarea>
+        <textarea id="userInput" rows="1" placeholder="Ask Jarvis anything..." writingsuggestions="false" autocomplete="off" onkeydown="handleInputKeydown(event)" oninput="autoGrowInput()"></textarea>
         <button class="icon-btn" id="micBtn" onclick="startListening()" title="Speak to Jarvis">
           <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
         </button>
