@@ -197,11 +197,13 @@ function renderHistoryList() {
     title.onclick = () => { loadSession(s.id); if (window.innerWidth <= 768) document.getElementById('historyPanel').classList.remove('active'); };
 
     const renameBtn = document.createElement('button');
-    renameBtn.className = 'history-item-btn'; renameBtn.textContent = '✏️'; renameBtn.title = 'Rename';
+    renameBtn.className = 'history-item-btn'; renameBtn.title = 'Rename';
+    renameBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
     renameBtn.onclick = (e) => { e.stopPropagation(); renameSession(s.id); };
 
     const delBtn = document.createElement('button');
-    delBtn.className = 'history-item-btn'; delBtn.textContent = '🗑️'; delBtn.title = 'Delete';
+    delBtn.className = 'history-item-btn'; delBtn.title = 'Delete';
+    delBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/></svg>';
     delBtn.onclick = (e) => { e.stopPropagation(); deleteSession(s.id); };
 
     row.append(title, renameBtn, delBtn);
@@ -279,6 +281,7 @@ function onPhotoChosen(file) {
     document.getElementById('photoPreviewImg').src = attachedPhoto.dataUrl;
     document.getElementById('photoPreviewName').textContent = attachedPhoto.name;
     document.getElementById('photoPreviewRow').style.display = 'flex';
+    updateSendButtonState();
   };
   reader.readAsDataURL(file);
 }
@@ -287,6 +290,12 @@ function clearAttachedPhoto() {
   attachedPhoto = null;
   document.getElementById('photoInput').value = '';
   document.getElementById('photoPreviewRow').style.display = 'none';
+  updateSendButtonState();
+}
+
+function updateSendButtonState() {
+  const text = document.getElementById('userInput').value.trim();
+  document.getElementById('sendBtn').disabled = !text && !attachedPhoto;
 }
 
 /* ============================================================
@@ -301,12 +310,20 @@ function appendMessageUI(msg) {
   const chatBox = document.getElementById('chatBox');
   const wrapper = document.createElement('div');
   wrapper.className = `message ${msg.sender === 'user' ? 'user-msg' : 'bot-msg'}`;
+  if (msg.isError) wrapper.classList.add('msg-error');
   wrapper.dataset.msgId = msg.id || uid();
 
   if (msg.photo) {
     const img = document.createElement('img');
     img.className = 'msg-photo'; img.src = msg.photo; img.alt = 'Attached photo';
     wrapper.appendChild(img);
+  }
+
+  if (msg.isError) {
+    const errLabel = document.createElement('div');
+    errLabel.className = 'msg-error-label';
+    errLabel.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Something went wrong</span>';
+    wrapper.appendChild(errLabel);
   }
 
   const body = document.createElement('div');
@@ -399,6 +416,7 @@ function autoGrowInput() {
   const el = document.getElementById('userInput');
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+  updateSendButtonState();
 }
 
 function resetInputHeight() {
@@ -422,6 +440,7 @@ async function sendQuery() {
   const photoToSend = attachedPhoto ? attachedPhoto.dataUrl : null;
   inputField.value = '';
   resetInputHeight();
+  updateSendButtonState();
   clearAttachedPhoto();
   document.getElementById('starterRow').innerHTML = '';
 
@@ -445,6 +464,16 @@ async function regenerateMessage(botMsgId) {
   loadSession(session.id);
 
   await streamReply({ prompt: userMsg.text, image: userMsg.photo, history: historyPayload, topic: userMsg.text });
+}
+
+function markWrapperAsError(wrapper) {
+  wrapper.classList.add('msg-error');
+  if (!wrapper.querySelector('.msg-error-label')) {
+    const errLabel = document.createElement('div');
+    errLabel.className = 'msg-error-label';
+    errLabel.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>Something went wrong</span>';
+    wrapper.insertBefore(errLabel, wrapper.firstChild);
+  }
 }
 
 function typingLabel(payload) {
@@ -481,6 +510,7 @@ async function streamReply(payload) {
         onError: (message) => {
           if (firstChunk) bodyEl.innerHTML = '';
           bodyEl.textContent = message;
+          markWrapperAsError(botWrapper);
           const finalMsg = { id: botWrapper.dataset.msgId, sender: 'bot', text: message, time: Date.now(), isError: true };
           saveMessageToSession(finalMsg);
         },
@@ -502,6 +532,8 @@ async function streamReply(payload) {
   } catch (err) {
     if (err && err.name !== 'AbortError') {
       bodyEl.textContent = 'Connection failed. Please try again.';
+      markWrapperAsError(botWrapper);
+      saveMessageToSession({ id: botWrapper.dataset.msgId, sender: 'bot', text: 'Connection failed. Please try again.', time: Date.now(), isError: true });
     } else if (fullText) {
       const finalMsg = { id: botWrapper.dataset.msgId, sender: 'bot', text: fullText + '\n\n_(stopped)_', time: Date.now(), canPdf: fullText.length > 60, topic: payload.topic };
       saveMessageToSession(finalMsg);
@@ -526,6 +558,7 @@ window.onload = function () {
 
   checkStatus();
   setInterval(checkStatus, 60000);
+  updateSendButtonState();
 
   const sessions = getSessions();
   if (sessions.length === 0) startNewChat(); else loadSession(sessions[0].id);
