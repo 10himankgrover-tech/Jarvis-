@@ -288,7 +288,8 @@ function onPhotoChosen(file) {
 
 function clearAttachedPhoto() {
   attachedPhoto = null;
-  document.getElementById('photoInput').value = '';
+  document.getElementById('cameraInput').value = '';
+  document.getElementById('galleryInput').value = '';
   document.getElementById('photoPreviewRow').style.display = 'none';
   updateSendButtonState();
 }
