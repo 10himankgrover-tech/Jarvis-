@@ -174,19 +174,24 @@
             <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
           </button>
           <div class="plus-menu glass-card" id="plusMenu">
-            <button class="plus-menu-item" onclick="document.getElementById('photoInput').click(); closePlusMenu();">
+            <button class="plus-menu-item" onclick="document.getElementById('cameraInput').click(); closePlusMenu();">
               <svg viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg>
-              Add a photo
+              Take a photo
+            </button>
+            <button class="plus-menu-item" onclick="document.getElementById('galleryInput').click(); closePlusMenu();">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.8"/><path d="m21 15-5-5-9 9"/></svg>
+              Choose from gallery
             </button>
             <button class="plus-menu-item disabled" disabled>
-              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.8"/><path d="m21 15-5-5-9 9"/></svg>
+              <svg viewBox="0 0 24 24"><path d="M12 2 4 7v10l8 5 8-5V7z"/><path d="M4 7l8 5 8-5M12 12v10"/></svg>
               Create an image
               <span class="soon-badge">Soon</span>
             </button>
           </div>
         </div>
 
-        <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none;" onchange="onPhotoChosen(this.files[0])">
+        <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;" onchange="onPhotoChosen(this.files[0])">
+        <input type="file" id="galleryInput" accept="image/*" style="display:none;" onchange="onPhotoChosen(this.files[0])">
         <textarea id="userInput" rows="1" placeholder="Ask Jarvis anything..." writingsuggestions="false" autocomplete="off" onkeydown="handleInputKeydown(event)" oninput="autoGrowInput()"></textarea>
         <button class="icon-btn" id="micBtn" onclick="startListening()" title="Speak to Jarvis">
           <svg viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
